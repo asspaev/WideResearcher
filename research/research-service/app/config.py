@@ -1,8 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
-from sys import prefix
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).parent
@@ -14,6 +13,13 @@ class PrefixConfig(BaseModel):
     research: str = "/research"
 
 
+class DatabaseConfig(BaseModel):
+    url: PostgresDsn
+    user: str
+    password: str
+    database: str
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -22,6 +28,7 @@ class Settings(BaseSettings):
     )
 
     prefix: PrefixConfig = PrefixConfig()
+    db: DatabaseConfig
 
 
 @lru_cache()

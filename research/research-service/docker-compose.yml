@@ -5,7 +5,7 @@ services:
     ports:
       - "8100:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DB__URL}
     depends_on:
       - research-db
     networks:
@@ -16,9 +16,9 @@ services:
     container_name: research-db
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DATABASE}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${DB__DATABASE}
+      POSTGRES_USER: ${DB__USER}
+      POSTGRES_PASSWORD: ${DB__PASSWORD}
     ports:
       - "6100:5432"
     volumes:
