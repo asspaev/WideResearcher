@@ -1,0 +1,34 @@
+services:
+  research-service:
+    build: .
+    container_name: research-service
+    ports:
+      - "8100:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - research-db
+    networks:
+      - research-network
+
+  research-db:
+    image: mysql:9.4
+    container_name: research-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "4100:3306"
+    volumes:
+      - research_db_data:/var/lib/mysql
+    networks:
+      - research-network
+
+networks:
+  research-network:
+
+volumes:
+  research_db_data:
