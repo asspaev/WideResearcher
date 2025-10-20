@@ -12,18 +12,17 @@ services:
       - research-network
 
   research-db:
-    image: mysql:9.4
+    image: postgres:18
     container_name: research-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "4100:3306"
+      - "6100:5432"
     volumes:
-      - research_db_data:/var/lib/mysql
+      - research_db_data:/var/lib/postgresql/data
     networks:
       - research-network
 
