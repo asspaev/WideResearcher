@@ -1,0 +1,8 @@
+from app.config import get_settings
+from fastapi import APIRouter
+
+from .research import router as research_router
+
+router = APIRouter(prefix=get_settings().prefix.v1)
+
+router.include_router(research_router)
