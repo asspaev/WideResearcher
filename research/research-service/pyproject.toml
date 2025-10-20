@@ -2,19 +2,17 @@
 name = "research-service"
 version = "0.1.0"
 description = "Responsible for research"
-authors = [
-    {name = "Nikita Aspaev",email = "asspaev@yandex.ru"}
-]
-license = {text = "MIT"}
+authors = [{ name = "Nikita Aspaev", email = "asspaev@yandex.ru" }]
+license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.14,<4.0"
 dependencies = [
     "fastapi (>=0.119.0,<0.120.0)",
     "pydantic (>=2.12.3,<3.0.0)",
     "pydantic-settings (>=2.11.0,<3.0.0)",
     "uvicorn (>=0.38.0,<0.39.0)",
     "sqlalchemy[asyncio] (>=2.0.44,<3.0.0)",
-    "aiomysql (>=0.2.0,<0.3.0)"
+    "asyncmy (>=0.2.10,<0.3.0)",
 ]
 
 
