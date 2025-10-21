@@ -4,8 +4,8 @@ import uvicorn
 from fastapi import FastAPI
 from loguru import logger
 
+from app.api import router as api_router
 from app.models import get_db_gateway
-from app.routers import router as api_router
 
 
 @asynccontextmanager
