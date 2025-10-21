@@ -14,6 +14,7 @@ dependencies = [
     "sqlalchemy[asyncio] (>=2.0.44,<3.0.0)",
     "psycopg[binary] (>=3.2.11,<4.0.0)",
     "loguru (>=0.7.3,<0.8.0)",
+    "alembic (>=1.17.0,<2.0.0)",
 ]
 
 
