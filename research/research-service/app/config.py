@@ -18,6 +18,10 @@ class DatabaseConfig(BaseModel):
     user: str
     password: str
     database: str
+    echo: bool = False
+    echo_pool: bool = False
+    max_overflow: int = 50
+    pool_size: int = 50
 
 
 class Settings(BaseSettings):
