@@ -2,4 +2,4 @@ from fastapi import APIRouter
 
 from app.config import get_settings
 
-router = APIRouter(prefix=get_settings().prefix.research)
+router = APIRouter(prefix=get_settings().prefix.v1.research)

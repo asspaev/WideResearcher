@@ -7,10 +7,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR = Path(__file__).parent
 
 
-class PrefixConfig(BaseModel):
+class PrefixV1Config(BaseModel):
     api: str = "/api"
-    v1: str = "/v1"
     research: str = "/research"
+
+
+class PrefixConfig(BaseModel):
+    prefix: str = "/v1"
+    v1: PrefixV1Config = PrefixV1Config()
 
 
 class DatabaseConfig(BaseModel):
