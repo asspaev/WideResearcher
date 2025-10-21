@@ -40,7 +40,7 @@ class DatabaseGateway:
 @lru_cache()
 def get_db_gateway() -> DatabaseGateway:
     return DatabaseGateway(
-        url=get_settings().db.url,
+        url=str(get_settings().db.url),
         echo=get_settings().db.echo,
         echo_pool=get_settings().db.echo_pool,
         max_overflow=get_settings().db.max_overflow,
