@@ -1,5 +1,5 @@
-from sqlalchemy import JSON, TIMESTAMP, ForeignKey, Integer, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import JSON, TIMESTAMP, Integer, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
 
@@ -11,10 +11,7 @@ class Research(Base):
     version_name: Mapped[str] = mapped_column(Text, comment="Version name")
     input: Mapped[dict] = mapped_column(JSON, comment="Input data")
     answer: Mapped[dict] = mapped_column(JSON, comment="Answer data")
-
-    status_id: Mapped[int] = mapped_column(ForeignKey("statuses.id"), nullable=False, comment="Research status")
-    status: Mapped["Status"] = relationship("Status", back_populates="researches")
-
+    status: Mapped[str] = mapped_column(Text, comment="Research status")
     date_start: Mapped[str] = mapped_column(TIMESTAMP, nullable=False, comment="Start date of research")
     date_end: Mapped[str] = mapped_column(TIMESTAMP, comment="End date of research")
     model_query_generator: Mapped[int] = mapped_column(Integer, nullable=False, comment="ID of query generator model")
