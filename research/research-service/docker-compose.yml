@@ -1,0 +1,33 @@
+services:
+  research-service:
+    build: .
+    container_name: research-service
+    ports:
+      - "8100:8000"
+    environment:
+      - DATABASE_URL=${DB__URL}
+    depends_on:
+      - research-db
+    networks:
+      - research-network
+
+  research-db:
+    image: postgres:18
+    container_name: research-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB__DATABASE}
+      POSTGRES_USER: ${DB__USER}
+      POSTGRES_PASSWORD: ${DB__PASSWORD}
+    ports:
+      - "6100:5432"
+    volumes:
+      - research_db_data:/var/lib/postgresql/data
+    networks:
+      - research-network
+
+networks:
+  research-network:
+
+volumes:
+  research_db_data:
