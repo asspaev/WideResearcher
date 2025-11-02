@@ -1,0 +1,34 @@
+services:
+  models-service:
+    build: ./services/models/models-service
+    container_name: models-service
+    env_file:
+      - .env
+    ports:
+      - "${MODELS_SERVICE__APP__PORT}:8000"
+    networks:
+      - wideresearcher-network
+    depends_on:
+      - models-database
+
+  models-database:
+    image: postgres:18
+    container_name: models-database
+    restart: always
+    environment:
+      POSTGRES_DB: ${MODELS_SERVICE__SQL__DATABASE}
+      POSTGRES_USER: ${MODELS_SERVICE__SQL__USER}
+      POSTGRES_PASSWORD: ${MODELS_SERVICE__SQL__PASSWORD}
+    ports:
+      - "${MODELS_SERVICE__SQL__PORT}:5432"
+    volumes:
+      - models-database-data:/var/lib/postgresql/data
+    networks:
+      - wideresearcher-network
+
+networks:
+  wideresearcher-network:
+    external: true
+
+volumes:
+  models-database-data:
