@@ -1,5 +1,5 @@
 # Use official Python image
-FROM python:3.14-slim
+FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /app
@@ -18,17 +18,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
+RUN pip install --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir poetry
 
 # Copy project files
 COPY pyproject.toml poetry.lock* ./
 
 # Install Python dependencies via Poetry
-RUN poetry config virtualenvs.create false \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.cache/pypoetry \
+    poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --only main --no-root
-
-# Copy source code
-COPY app ./app
 
 # Expose FastAPI port
 EXPOSE 8000
