@@ -25,6 +25,42 @@ services:
       - models-database-data:/var/lib/postgresql/data
     networks:
       - wideresearcher-network
+  research-service:
+    build: ./services/researchers/research-service
+    container_name: research-service
+    env_file:
+      - .env
+    ports:
+      - "${RESEARCH_SERVICE__APP__PORT}:8000"
+    networks:
+      - wideresearcher-network
+    depends_on:
+      - research-cache
+      - research-database
+
+  research-cache:
+    image: redis:7.2
+    container_name: research-cache
+    restart: always
+    ports:
+      - "${RESEARCH_SERVICE__REDIS__PORT}:6379"
+    networks:
+      - wideresearcher-network
+    command: ["redis-server", "--requirepass", "${RESEARCH_SERVICE__REDIS__PASSWORD}"]
+
+  research-database:
+    image: mongo:6.0
+    container_name: research-database
+    restart: always
+    ports:
+      - "${RESEARCH_SERVICE__MONGO__PORT}:27017"
+    networks:
+      - wideresearcher-network
+    volumes:
+      - research-database-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${RESEARCH_SERVICE__MONGO__USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${RESEARCH_SERVICE__MONGO__PASSWORD}
 
 networks:
   wideresearcher-network:
@@ -32,3 +68,4 @@ networks:
 
 volumes:
   models-database-data:
+  research-database-data:
