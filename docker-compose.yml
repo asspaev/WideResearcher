@@ -25,6 +25,29 @@ services:
       - models-database-data:/var/lib/postgresql/data
     networks:
       - wideresearcher-network
+
+  models-selector-service:
+    build: ./services/models/models-selector-service
+    container_name: models-selector-service
+    env_file:
+      - .env
+    ports:
+      - "${MODELS_SELECTOR_SERVICE__APP__PORT}:8000"
+    networks:
+      - wideresearcher-network
+    depends_on:
+      - models-selector-service-cache
+
+  models-selector-service-cache:
+    image: redis:7.2
+    container_name: models-selector-service-cache
+    restart: always
+    ports:
+      - "${MODELS_SELECTOR_SERVICE__REDIS__PORT}:6379"
+    networks:
+      - wideresearcher-network
+    command: ["redis-server", "--requirepass", "${MODELS_SELECTOR_SERVICE__REDIS__PASSWORD}"]
+
   research-service:
     build: ./services/researchers/research-service
     container_name: research-service
