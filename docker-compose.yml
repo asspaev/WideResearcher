@@ -61,6 +61,33 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${RESEARCH_SERVICE__MONGO__USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${RESEARCH_SERVICE__MONGO__PASSWORD}
+      
+  query-generator-service:
+    build: ./services/researchers/query-generator-service
+    container_name: query-generator-service
+    env_file:
+      - .env
+    ports:
+      - "${QUERY_GENERATOR_SERVICE__APP__PORT}:8000"
+    networks:
+      - wideresearcher-network
+    depends_on:
+      - query-generator-database
+
+  query-generator-database:
+    image: postgres:18
+    container_name: sql
+    restart: always
+    environment:
+      POSTGRES_DB: ${QUERY_GENERATOR_SERVICE__SQL__DATABASE}
+      POSTGRES_USER: ${QUERY_GENERATOR_SERVICE__SQL__USER}
+      POSTGRES_PASSWORD: ${QUERY_GENERATOR_SERVICE__SQL__PASSWORD}
+    ports:
+      - "${QUERY_GENERATOR_SERVICE__SQL__PORT}:5432"
+    volumes:
+      - query-generator-database-data:/var/lib/postgresql/data
+    networks:
+      - wideresearcher-network
 
 networks:
   wideresearcher-network:
@@ -69,3 +96,4 @@ networks:
 volumes:
   models-database-data:
   research-database-data:
+  query-generator-database-data:
