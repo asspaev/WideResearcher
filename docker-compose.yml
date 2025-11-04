@@ -33,10 +33,20 @@ services:
       - .env
     ports:
       - "${MODELS_SELECTOR_SERVICE__APP__PORT}:8000"
+    volumes:
+      - ./services/models/models-selector-service/app:/app/app:cached
+      - ./models:/models:ro
     networks:
       - wideresearcher-network
     depends_on:
       - models-selector-service-cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   models-selector-service-cache:
     image: redis:7.2
