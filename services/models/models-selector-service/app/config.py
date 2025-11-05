@@ -21,6 +21,7 @@ class RedisConfig(BaseModel):
 class PrefixConfig(BaseModel):
     v1: str = "/v1"
     api: str = "/api"
+    predictions: str = "/predictions"
 
 
 class AppConfig(BaseModel):
