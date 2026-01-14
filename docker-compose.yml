@@ -1,0 +1,46 @@
+services:
+  app:
+    build: .
+    container_name: application
+    restart: always
+    ports:
+      - "${APP__PORT}:8000"
+    networks:
+      - app-network
+    volumes:
+      - ./app:/app/app
+      - ./.env:/app/.env
+    depends_on:
+      - redis
+      - sql
+
+  redis:
+    image: redis:7.2
+    container_name: redis
+    restart: always
+    ports:
+      - "${REDIS__PORT}:6379"
+    networks:
+      - app-network
+    command: ["redis-server", "--requirepass", "${REDIS__PASSWORD}"]
+
+  sql:
+    image: postgres:18
+    container_name: sql
+    restart: always
+    environment:
+      POSTGRES_DB: ${SQL__DATABASE}
+      POSTGRES_USER: ${SQL__USER}
+      POSTGRES_PASSWORD: ${SQL__PASSWORD}
+    ports:
+      - "${SQL__PORT}:5432"
+    volumes:
+      - sql-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+
+volumes:
+  sql-data:
