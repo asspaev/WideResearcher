@@ -52,6 +52,7 @@ class Settings(BaseSettings):
         env_file=(".env.template", ".env"),
         case_sensitive=False,
         env_nested_delimiter="__",
+        extra="ignore",
     )
 
     app: AppConfig

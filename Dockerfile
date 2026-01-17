@@ -2,7 +2,7 @@
 FROM python:3.14-slim
 
 # Set working directory
-WORKDIR /app
+WORKDIR /workdir
 
 # Install system dependencies for building Python packages
 RUN apt-get update && apt-get install -y \
