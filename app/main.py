@@ -2,12 +2,14 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from app.api import router as router_api
 from app.config import get_settings
 from app.core.redis import close_redis, init_redis
 from app.core.sql import get_sql
+from app.web import router as router_web
 
 
 @asynccontextmanager
@@ -30,10 +32,15 @@ async def lifespan(app: FastAPI):
         logger.info("SQL connections closed")
         logger.success("Application is stopped")
 
+
 app = FastAPI(lifespan=lifespan)
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(router_api)
 
+app.include_router(router_web)
+
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=get_settings().app.host, port=get_settings().app.port)
+    uvicorn.run("app.main:app", host=get_settings().app.host, port=get_settings().app.port, reload=True)

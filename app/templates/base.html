@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WideResearcher{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/styles.css') }}">
+</head>
+
+<body>
+
+    <div class="page">
+        <div class="background-effects">
+            <div class="light-ellipse"></div>
+        </div>
+    </div>
+
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+
+    <main>
+        {% block main %}{% endblock %}
+    </main>
+    <footer>
+        {% block footer %}{% endblock %}
+    </footer>
+
+</body>
+
+</html>

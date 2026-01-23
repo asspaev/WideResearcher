@@ -1,0 +1,454 @@
+/* ===== Base Reset (современный, аккуратный) ===== */
+
+/* 1) Корректная модель коробки и сброс отступов */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+/* 2) Базовые улучшения рендеринга текста */
+html {
+    -webkit-text-size-adjust: 100%;
+    -moz-tab-size: 4;
+    tab-size: 4;
+    height: 100%;
+}
+
+body {
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 3) Медиа — блочные и не выпрыгивают за контейнер */
+img,
+picture,
+video,
+canvas,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+/* 4) Формы наследуют шрифты/цвета, убираем дефолтные рамки/фоны */
+input,
+button,
+textarea,
+select {
+    font: inherit;
+    color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+    background: none;
+    border: 0;
+}
+
+button {
+    cursor: pointer;
+}
+
+/* 5) Списки и ссылки — без стилизации по умолчанию */
+ul,
+ol {
+    list-style: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* 6) Заголовки/параграфы — адекватные переносы */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+    overflow-wrap: anywhere;
+}
+
+/* 7) Таблицы — без межячейчных зазоров */
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+/* 8) Поля/легенды форм — без браузерных артефактов */
+fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+}
+
+legend {
+    padding: 0;
+}
+
+/* 9) Служебные состояния */
+[hidden] {
+    display: none !important;
+}
+
+:disabled {
+    cursor: not-allowed;
+}
+
+/* 10) Уважение к reduce-motion */
+@media (prefers-reduced-motion: reduce) {
+    html:focus-within {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+* {
+    font-family: 'SF Pro Display';
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* ===== Fonts (шрифты) ===== */
+
+/* Thin */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Thin.otf') format('opentype');
+    font-weight: 100;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-ThinItalic.otf') format('opentype');
+    font-weight: 100;
+    font-style: italic;
+}
+
+/* Ultralight */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Ultralight.otf') format('opentype');
+    font-weight: 200;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-UltralightItalic.otf') format('opentype');
+    font-weight: 200;
+    font-style: italic;
+}
+
+/* Light */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Light.otf') format('opentype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-LightItalic.otf') format('opentype');
+    font-weight: 300;
+    font-style: italic;
+}
+
+/* Regular */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Regular.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+/* Medium */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-MediumItalic.otf') format('opentype');
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Semibold */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Semibold.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-SemiboldItalic.otf') format('opentype');
+    font-weight: 600;
+    font-style: italic;
+}
+
+/* Bold */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Bold.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-BoldItalic.otf') format('opentype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* Black */
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-Black.otf') format('opentype');
+    font-weight: 900;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('./fonts/SF-Pro-Display-BlackItalic.otf') format('opentype');
+    font-weight: 900;
+    font-style: italic;
+}
+
+/* ===== Variables (переменные) ===== */
+
+:root {
+    --color-primary-default: #00FF55;
+    --color-white-default: #FFFFFF;
+    --color-white-hover: #CEFFCE;
+    --color-warning-default: #FF3F3F;
+    --color-black-default: #0A0A0A;
+    --color-block-1-default: #1B1B1B;
+    --color-block-1-stroke: #232323;
+    --color-block-2-default: #1D1D1D;
+    --color-block-2-stroke: #212121;
+    --color-input-default: #232323;
+    --color-input-stroke: #353535;
+    --color-text-placeholder: #4D4D4D;
+    --color-text-body: #6D6D6D;
+    --color-text-hint: #999999;
+
+    --corner-large: 12px;
+    --corner-normal: 6px;
+    --corner-small: 2px;
+}
+
+/* ===== Main Styles (основные стили) ===== */
+
+main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body {
+    background: var(--color-black-default);
+}
+
+.color-primary-default {
+    color: var(--color-primary-default);
+}
+
+.header-logotype {
+    color: var(--color-white-default);
+    font-weight: 700;
+    font-size: 16px;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 32px;
+}
+
+.header.flex {
+    flex: 0 0 auto;
+}
+
+.background-effects {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.light-ellipse {
+    position: absolute;
+    left: 50%;
+    bottom: -600px;
+    transform: translateX(-50%);
+    width: 2824px;
+    height: 1032px;
+    border-radius: 50%;
+    background: var(--color-primary-default);
+    filter: blur(500px);
+    will-change: transform;
+    opacity: 0.15;
+}
+
+.main {
+    min-height: 100vh;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex: 1;
+}
+
+.main.flex {
+    flex: 1 0 auto;
+}
+
+.container {
+    width: 100%;
+    max-width: 1504px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.container.center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+p,
+a {
+    color: var(--color-white-default);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 19px;
+    color: var(--color-text-body)
+}
+
+.form-level-1 {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 32px 40px;
+    background: var(--color-block-1-default);
+    border-radius: var(--corner-large);
+    border: 1px solid var(--color-block-1-stroke);
+}
+
+.form-level-1 .form-title {
+    display: flex;
+    gap: 12px;
+    flex-direction: column;
+}
+
+.form-level-1 .form-title p {
+    text-align: center;
+}
+
+.form-level-1 .form-title .title {
+    color: var(--color-white-default);
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 29px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+input {
+    background: var(--color-input-default);
+    border-radius: var(--corner-normal);
+    border: 1px solid var(--color-input-stroke);
+    padding: 16px 48px;
+    color: var(--color-white-default);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 19px;
+    text-align: center;
+    transition: all 0.3s ease-in-out;
+}
+
+input::placeholder {
+    color: var(--color-text-placeholder);
+}
+
+input:hover {
+    border: 1px solid var(--color-text-body);
+}
+
+input:focus {
+    border: 1px solid var(--color-white-default);
+    color: var(--color-white-default);
+}
+
+button {
+    padding: 16px 32px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--corner-normal);
+    transition: all 0.3s ease-in-out;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 19px;
+}
+
+button.primary.solid {
+    background-color: var(--color-primary-default);
+    color: var(--color-black-default);
+}
+
+button.primary.solid:hover {
+    box-shadow: 0px 4px 40px 0px rgba(0, 255, 85, 0.2);
+}
+
+button.primary.stroke {
+    border: 1px solid var(--color-primary-default);
+    color: var(--color-primary-default);
+}
+
+button.primary.stroke:hover {
+    background-color: var(--color-primary-default);
+    color: var(--color-black-default);
+}

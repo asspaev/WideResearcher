@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block header %}
+<div class="header flex">
+    <div class="container center">
+        {% include "includes/header-out-system.html" %}
+    </div>
+</div>
+{% endblock %}
+
+{% block main %}
+<div class="main flex">
+    <div class="container page center">
+        <div class="form-level-1" style="width: 480px;">
+            <div class="form-title">
+                <p class="title">Авторизация</p>
+                <p class="subtitle">
+                    Авторизируйтесь, чтобы продолжить использование сервис WideResearcher
+                </p>
+                <form>
+                    <input type="text" placeholder="Логин">
+                    <input type="password" placeholder="Пароль">
+                    <button class="primary solid">Войти в систему</button>
+                    <p>или</p>
+                    <button class="primary stroke">Создать аккаунт</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
