@@ -13,16 +13,17 @@
     <div class="container page center">
         <div class="form-level-1" style="width: 480px;">
             <div class="form-title">
-                <p class="title">Авторизация</p>
+                <p class="title">Регистрация</p>
                 <p class="subtitle">
-                    Авторизируйтесь, чтобы продолжить использование сервис WideResearcher
+                    Создайте аккаунт, чтобы начать пользоваться сервисом WideResearcher
                 </p>
                 <form>
                     <input type="text" placeholder="Логин">
                     <input type="password" placeholder="Пароль">
-                    <button class="primary solid">Войти в систему</button>
+                    <input type="confirm-password" placeholder="Повтор пароля">
+                    <button class="primary solid">Создать аккаунт</button>
                     <p>или</p>
-                    <a class="button primary stroke" href="{{ url_for('register') }}">Создать аккаунт</a>
+                    <a class="button primary stroke" href="{{ url_for('login') }}">Войти в аккаунт</a>
                 </form>
             </div>
         </div>

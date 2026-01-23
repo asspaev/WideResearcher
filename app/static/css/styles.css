@@ -136,14 +136,14 @@ legend {
 /* Thin */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Thin.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Thin.otf') format('opentype');
     font-weight: 100;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-ThinItalic.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-ThinItalic.otf') format('opentype');
     font-weight: 100;
     font-style: italic;
 }
@@ -151,14 +151,14 @@ legend {
 /* Ultralight */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Ultralight.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Ultralight.otf') format('opentype');
     font-weight: 200;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-UltralightItalic.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-UltralightItalic.otf') format('opentype');
     font-weight: 200;
     font-style: italic;
 }
@@ -166,14 +166,14 @@ legend {
 /* Light */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Light.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Light.otf') format('opentype');
     font-weight: 300;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-LightItalic.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-LightItalic.otf') format('opentype');
     font-weight: 300;
     font-style: italic;
 }
@@ -181,7 +181,7 @@ legend {
 /* Regular */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Regular.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Regular.otf') format('opentype');
     font-weight: 400;
     font-style: normal;
 }
@@ -189,14 +189,14 @@ legend {
 /* Medium */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Medium.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Medium.otf') format('opentype');
     font-weight: 500;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-MediumItalic.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-MediumItalic.otf') format('opentype');
     font-weight: 500;
     font-style: italic;
 }
@@ -204,14 +204,14 @@ legend {
 /* Semibold */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Semibold.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Semibold.otf') format('opentype');
     font-weight: 600;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-SemiboldItalic.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-SemiboldItalic.otf') format('opentype');
     font-weight: 600;
     font-style: italic;
 }
@@ -219,14 +219,14 @@ legend {
 /* Bold */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Bold.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Bold.otf') format('opentype');
     font-weight: 700;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-BoldItalic.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-BoldItalic.otf') format('opentype');
     font-weight: 700;
     font-style: italic;
 }
@@ -234,14 +234,14 @@ legend {
 /* Black */
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-Black.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-Black.otf') format('opentype');
     font-weight: 900;
     font-style: normal;
 }
 
 @font-face {
     font-family: 'SF Pro Display';
-    src: url('./fonts/SF-Pro-Display-BlackItalic.otf') format('opentype');
+    src: url('./../fonts/SF-Pro-Display-BlackItalic.otf') format('opentype');
     font-weight: 900;
     font-style: italic;
 }
@@ -389,6 +389,10 @@ a {
     line-height: 29px;
 }
 
+.form-title .subtitle {
+    margin-bottom: 12px;
+}
+
 form {
     display: flex;
     flex-direction: column;
@@ -421,7 +425,8 @@ input:focus {
     color: var(--color-white-default);
 }
 
-button {
+button,
+a.button {
     padding: 16px 32px;
     display: flex;
     gap: 8px;
@@ -434,21 +439,25 @@ button {
     line-height: 19px;
 }
 
-button.primary.solid {
+button.primary.solid,
+a.button.primary.solid {
     background-color: var(--color-primary-default);
     color: var(--color-black-default);
 }
 
-button.primary.solid:hover {
+button.primary.solid:hover,
+a.button.primary.solid:hover {
     box-shadow: 0px 4px 40px 0px rgba(0, 255, 85, 0.2);
 }
 
-button.primary.stroke {
+button.primary.stroke,
+a.button.primary.stroke {
     border: 1px solid var(--color-primary-default);
     color: var(--color-primary-default);
 }
 
-button.primary.stroke:hover {
+button.primary.stroke:hover,
+a.button.primary.stroke:hover {
     background-color: var(--color-primary-default);
     color: var(--color-black-default);
 }
