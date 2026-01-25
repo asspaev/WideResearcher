@@ -271,6 +271,10 @@ legend {
 
 /* ===== Main Styles (основные стили) ===== */
 
+body {
+    background: var(--color-black-default);
+}
+
 main {
     flex: 1;
     display: flex;
@@ -278,8 +282,9 @@ main {
     align-items: center;
 }
 
-body {
-    background: var(--color-black-default);
+.main {
+    height: 100%;
+    display: flex;
 }
 
 .color-primary-default {
@@ -303,10 +308,6 @@ body {
     padding-top: 32px;
 }
 
-.header.flex {
-    flex: 0 0 auto;
-}
-
 .background-effects {
     position: fixed;
     inset: 0;
@@ -326,18 +327,6 @@ body {
     filter: blur(500px);
     will-change: transform;
     opacity: 0.15;
-}
-
-.main {
-    min-height: 100vh;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex: 1;
-}
-
-.main.flex {
-    flex: 1 0 auto;
 }
 
 .container {
