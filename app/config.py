@@ -47,6 +47,12 @@ class AppConfig(BaseModel):
     port: int
 
 
+class AuthConfig(BaseModel):
+    jwt_private_key: str = "secret"
+    jwt_public_key: str = "secret"
+    algorithm: str = "RS256"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -59,6 +65,7 @@ class Settings(BaseSettings):
     prefix: PrefixConfig = PrefixConfig()
     redis: RedisConfig
     sql: SqlConfig
+    auth: AuthConfig = AuthConfig()
 
 
 @lru_cache()
