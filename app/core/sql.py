@@ -44,3 +44,8 @@ def get_sql() -> DatabaseGateway:
         max_overflow=get_settings().sql.max_overflow,
         pool_size=get_settings().sql.pool_size,
     )
+
+
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async for session in get_sql().session_getter():
+        yield session
