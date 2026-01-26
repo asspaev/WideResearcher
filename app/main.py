@@ -9,6 +9,7 @@ from app.api import router as router_api
 from app.config import get_settings
 from app.core.redis import close_redis, init_redis
 from app.core.sql import get_sql
+from app.utils.middlewares import AuthMiddleware
 from app.web import router as router_web
 
 
@@ -34,6 +35,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(AuthMiddleware)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
