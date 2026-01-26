@@ -1,5 +1,5 @@
 from fastapi import Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import Response
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -28,7 +28,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
             decode_jwt(token)
         except Exception as e:
             logger.debug(f"Error decoding JWT: {e}")
-            return RedirectResponse(url="/login", status_code=302)
+            response: Response = Response(status_code=204)
+            response.headers["HX-Redirect"] = "/login"
+            return response
 
         # Возращаем ответ
         return await call_next(request)
