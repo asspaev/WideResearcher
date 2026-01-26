@@ -297,6 +297,18 @@ main {
     color: var(--color-primary-default);
 }
 
+.color-white-default {
+    color: var(--color-white-default);
+}
+
+.color-text-body {
+    color: var(--color-text-body);
+}
+
+.color-black-default {
+    color: var(--color-black-default);
+}
+
 .header-logotype {
     color: var(--color-white-default);
     font-weight: 700;
@@ -304,6 +316,11 @@ main {
     display: flex;
     gap: 4px;
     align-items: center;
+    transition: color 0.2s ease-in-out;
+}
+
+.header-logotype:hover {
+    color: var(--color-primary-default)
 }
 
 .header {
@@ -346,6 +363,14 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row;
+    width: 100%;
 }
 
 p,
@@ -438,6 +463,8 @@ button.primary.solid,
 a.button.primary.solid {
     background-color: var(--color-primary-default);
     color: var(--color-black-default);
+    box-shadow: 0px 4px 40px 0px rgba(0, 255, 85, 0.0);
+    transition: box-shadow 0.3s ease-in-out;
 }
 
 button.primary.solid:hover,
@@ -463,4 +490,64 @@ a.button.primary.stroke:hover {
 
 .hidden {
     display: none;
+}
+
+.header-menu-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+}
+
+.header-menu.button {
+    background-color: var(--color-primary-default);
+    color: var(--color-black-default);
+    border-radius: var(--corner-small);
+    padding: 6px 12px;
+    background-image: none;
+    font-weight: 500;
+}
+
+.header-menu.button:hover {
+    background-image: none;
+}
+
+.header-menu {
+    border-radius: var(--corner-small);
+    padding: 6px 12px;
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='rgba%280,0,0,0%29' stroke-width='1' stroke-dasharray='7,7' stroke-linecap='square'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    transition: background-image 0.3s ease;
+    color: var(--color-white-default)
+}
+
+.header-menu:hover {
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%236D6D6D' stroke-width='1' stroke-dasharray='7,7' stroke-linecap='square'/%3e%3c/svg%3e");
+    transition: all 0.3s ease;
+}
+
+.header-menu:active {
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%2300FF55' stroke-width='1' stroke-dasharray='7,7' stroke-linecap='square'/%3e%3c/svg%3e");
+    color: var(--color-primary-default);
+    transition: all 0s ease;
+}
+
+.header-profile-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+}
+
+.profile p {
+    font-weight: 500;
+    color: var(--color-white-default);
+}
+
+.notification:hover svg {
+    transition: color 0.3s ease;
+}
+
+.notification:hover svg {
+    color: var(--color-white-default);
 }

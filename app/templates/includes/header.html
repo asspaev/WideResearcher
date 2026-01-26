@@ -1,0 +1,48 @@
+{% set width = 20 %}
+{% set height = 20 %}
+{% set class = "color-primary-default" %}
+
+
+<div class="header flex">
+
+    <div class="container row">
+
+        <a href="{{ url_for('main')}}" class="header-logotype">
+            {% include 'includes/svg/logo.svg' %}
+            WideResearcher
+        </a>
+
+        <div class="header-menu-wrapper">
+            <a href="" class="header-menu button primary solid">
+                {% set width = 16 %}
+                {% set height = 16 %}
+                {% set class = "color-black-default" %}
+                {% include 'includes/svg/start-research.svg' %}
+                Новое исследование
+            </a>
+            <a href="" class="header-menu">
+                Исследования
+            </a>
+            <a href="" class="header-menu">
+                Модели
+            </a>
+            <a href="" class="header-menu">
+                Полезная информация
+            </a>
+        </div>
+
+        <div class="header-profile-wrapper">
+            <a href="" class="notification">
+                {% set width = 20 %}
+                {% set height = 20 %}
+                {% set class = "color-text-body" %}
+                {% include 'includes/svg/bell.svg' %}
+            </a>
+            <a href="" class="profile">
+                <p>{{ current_user.login if current_user else "Пользователь" }}</p>
+            </a>
+        </div>
+
+    </div>
+
+</div>
