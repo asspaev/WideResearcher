@@ -31,3 +31,14 @@ async def create_user(
     await session.refresh(user)
 
     return user
+
+
+async def get_user_by_login(
+    session: AsyncSession,
+    login: str,
+) -> User | None:
+    """Получает пользователя из базы данных по логину"""
+    stmt = select(User).where(User.user_login == login)
+
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
