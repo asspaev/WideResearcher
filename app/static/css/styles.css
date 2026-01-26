@@ -450,3 +450,11 @@ a.button.primary.stroke:hover {
     background-color: var(--color-primary-default);
     color: var(--color-black-default);
 }
+
+.wrong {
+    color: var(--color-warning-default);
+}
+
+.hidden {
+    display: none;
+}

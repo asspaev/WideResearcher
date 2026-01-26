@@ -17,11 +17,12 @@
                 <p class="subtitle">
                     Создайте аккаунт, чтобы начать пользоваться сервисом WideResearcher
                 </p>
-                <form>
-                    <input type="text" placeholder="Логин">
-                    <input type="password" placeholder="Пароль">
-                    <input type="confirm-password" placeholder="Повтор пароля">
-                    <button class="primary solid">Создать аккаунт</button>
+                <form hx-post="{{ url_for('api_register') }}" hx-trigger="submit" hx-swap="none">
+                    <input name="login" type="text" placeholder="Логин">
+                    <input name="password" type="password" placeholder="Пароль">
+                    <input name="password_confirm" type="password" placeholder="Повтор пароля">
+                    <button type="submit" class="primary solid">Создать аккаунт</button>
+                    <p id="result_form" class="result wrong hidden"></p>
                     <p>или</p>
                     <a class="button primary stroke" href="{{ url_for('login') }}">Войти в аккаунт</a>
                 </form>

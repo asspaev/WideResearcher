@@ -10,6 +10,6 @@ router = APIRouter()
 @router.get("/", name="index", response_class=HTMLResponse)
 async def index(request: Request):
     try:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/main")
     except Exception as e:
         logger.error(f"Error rendering index page: {e}")
