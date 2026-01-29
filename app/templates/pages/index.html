@@ -9,17 +9,23 @@
     <div class="container">
         <div class="header-main">
             <div class="nearest-research col-3 p-24 b-1 h-fill center column">
+                {% if nearest_research is none %}
+                <p>
+                    Ближайшее исследование по расписанию не назначено
+                </p>
+                {% else %}
                 <p>
                     Ближайшее исследование по расписанию
                 </p>
                 <a href="" class="research-planner-info center">
                     <p class="research-name">
-                        Интеллектуальные системы прогнозирования: новые подходы и алгоритмы
+                        {{ nearest_research.research_name }}
                     </p>
                     <p class="planner-remained">
-                        через 2 часа 35 минут
+                        {{ nearest_research.schedule_next_launch_time }}
                     </p>
                 </a>
+                {% endif %}
             </div>
             <div class="quick-launch-research col-max p-24 b-1 column">
                 <h1 class="center">Новое исследование</h1>
@@ -64,6 +70,7 @@
                 <a href="" class="button primary dashed">
                     Начать новое исследование
                 </a>
+                {% if researches|length == 0 %}
                 <div class="empty-block">
                     {% set width = 96 %}
                     {% set height = 96 %}
@@ -74,6 +81,8 @@
                         <p>Тут пока нет ни одного исследования</p>
                     </div>
                 </div>
+                {% else %}
+                {% for research in researches %}
                 <div class="research-card">
                     <div class="card-info">
                         <a href="" class="row card-header">
@@ -84,7 +93,7 @@
                                 {% include 'includes/svg/research.svg' %}
                             </div>
                             <p class="card-name">
-                                Интеллектуальные системы прогнозирования: новые подходы и алгоритмы
+                                {{ research.research_name }}
                             </p>
                         </a>
                         <div class="row">
@@ -93,21 +102,21 @@
                                 {% set height = 16 %}
                                 {% set class = "color-text-body" %}
                                 {% include 'includes/svg/timer.svg' %}
-                                Следующее исследование через 12 дней
+                                Следующее исследование {{ research.schedule_next_launch_time }}
                             </div>
                             <div class="property">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
                                 {% set class = "color-text-body" %}
                                 {% include 'includes/svg/git-fork.svg' %}
-                                12 этап
+                                {{ research.research_version_name }}
                             </div>
                             <div class="property">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
                                 {% set class = "color-text-body" %}
                                 {% include 'includes/svg/revert.svg' %}
-                                Обновлён 1 день назад
+                                Обновлён {{ research.research_last_update_time }}
                             </div>
                         </div>
                     </div>
@@ -135,6 +144,8 @@
                         </a>
                     </div>
                 </div>
+                {% endfor %}
+                {% endif %}
             </div>
         </div>
     </div>

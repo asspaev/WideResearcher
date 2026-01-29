@@ -39,7 +39,7 @@
                 {% include 'includes/svg/bell.svg' %}
             </a>
             <a href="" class="profile">
-                <p>{{ current_user.login if current_user else "Пользователь" }}</p>
+                <p>{{ user_cookie.user_login if user_cookie else "Пользователь" }}</p>
             </a>
         </div>
 

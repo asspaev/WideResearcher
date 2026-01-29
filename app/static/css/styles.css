@@ -627,6 +627,10 @@ a.button.primary.dashed:hover {
 
 .research-name {
     color: var(--color-white-default);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .planner-remained {
@@ -794,6 +798,10 @@ h1 {
     font-weight: 600;
     color: var(--color-white-default);
     width: 410px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .card-info {
