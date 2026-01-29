@@ -20,13 +20,13 @@
                 {% include 'includes/svg/start-research.svg' %}
                 Новое исследование
             </a>
-            <a href="" class="header-menu">
+            <a href="" class="header-menu{% if page == 'researches' %}-selected{% endif %}">
                 Исследования
             </a>
-            <a href="" class="header-menu">
+            <a href="{{ url_for('models')}}" class="header-menu{% if page == 'models' %}-selected{% endif %}">
                 Модели
             </a>
-            <a href="" class="header-menu">
+            <a href="" class="header-menu{% if page == 'guide' %}-selected{% endif %}">
                 Полезная информация
             </a>
         </div>
