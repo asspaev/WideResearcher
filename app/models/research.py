@@ -31,6 +31,7 @@ class Research(Base):
         ENUM(ResearchStatus, name="research_status_enum"), nullable=False
     )
     research_name: Mapped[str] = mapped_column(Text, nullable=False)
+    research_version_name: Mapped[str] = mapped_column(Text, nullable=False)
     research_body: Mapped[dict | None] = mapped_column(JSONB)
 
     # SETTINGS-параметры
