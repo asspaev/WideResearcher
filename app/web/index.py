@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.exceptions import HTTPException
-from fastapi.responses import HTMLResponse
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +22,7 @@ async def get_index(
     request: Request,
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
-) -> HTMLResponse:
+):
     """Рендер главной страницы"""
     # Получение всех исследования и планов исследований пользователя
     try:
