@@ -9,6 +9,7 @@ router = APIRouter()
 
 @router.get("/login", name="login", response_class=HTMLResponse)
 async def index(request: Request):
+    """Рендер страницы авторизации"""
     try:
         return templates.TemplateResponse("pages/login.html", {"request": request})
     except Exception as e:
@@ -17,6 +18,7 @@ async def index(request: Request):
 
 @router.get("/register", name="register", response_class=HTMLResponse)
 async def index(request: Request):
+    """Рендер страницы регистрации"""
     try:
         return templates.TemplateResponse("pages/register.html", {"request": request})
     except Exception as e:

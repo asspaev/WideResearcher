@@ -21,6 +21,8 @@ async def login(
     password: str | None = Form(...),
     session: AsyncSession = Depends(get_session),
 ):
+    """Авторизация пользователя"""
+
     # Достать запись из БД по логину
     try:
         user: User | None = await get_user_by_login(session, login)
@@ -86,6 +88,8 @@ async def register(
     password_confirm: str | None = Form(...),
     session: AsyncSession = Depends(get_session),
 ):
+    """Регистрация пользователя"""
+
     # Проверка совпадения паролей
     if not validate_confirmation_password(password, password_confirm):
         return templates.TemplateResponse(
