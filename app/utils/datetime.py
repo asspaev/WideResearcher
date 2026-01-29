@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from babel.dates import format_date
+
 
 def human_delta(dt1: datetime, dt2: datetime) -> str:
     """
@@ -119,3 +121,11 @@ def human_delta(dt1: datetime, dt2: datetime) -> str:
             return f"{value} {word} назад" if past else f"через {value} {word}"
 
     return "только что"
+
+
+def format_added_at(dt: datetime) -> str:
+    """
+    Преобразует datetime (с tzinfo) в строку вида:
+    '12 октября 2024 года'
+    """
+    return format_date(dt, format="d MMMM y 'года'", locale="ru")
