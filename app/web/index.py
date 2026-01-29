@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 @router.get("/", name="index")
-async def index(
+async def get_index(
     request: Request,
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
