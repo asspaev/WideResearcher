@@ -1,0 +1,33 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup new-research">
+        <div class="popup-header">
+            <h2>Новое исследование</h2>
+            <p>Настройте параметры нового исследования</p>
+        </div>
+        <form>
+            <textarea name="prompt" placeholder="Запрос на исследование"></textarea>
+            <div class="column gap-12">
+                <div class="row gap-12">
+                    <a href="" class="button border-icon">
+                        {% set width = 24 %}
+                        {% set height = 24 %}
+                        {% set class = "color-white-default" %}
+                        {% include 'includes/svg/settings.svg' %}
+                    </a>
+                    <button class="primary solid col-max" type="submit">
+                        Начать исследование
+                    </button>
+                </div>
+                <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke col-max">
+                    Отмена
+                </a>
+            </div>
+        </form>
+        <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="popup-close xmark-button">
+            {% set width = 20 %}
+            {% set height = 20 %}
+            {% set class = "color-text-body" %}
+            {% include 'includes/svg/xmark.svg' %}
+        </a>
+    </div>
+</div>

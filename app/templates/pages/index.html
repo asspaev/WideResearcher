@@ -30,7 +30,7 @@
             <div class="quick-launch-research col-max p-24 b-1 column">
                 <h1 class="center">Новое исследование</h1>
                 <form>
-                    <input type="text" placeholder="Начните писать...">
+                    <textarea type="text" placeholder="Начните писать..."></textarea>
                     <div class="row gap-12">
                         <a href="" class="button border-icon">
                             {% set width = 24 %}
@@ -46,6 +46,7 @@
             </div>
             <div class="offer-guide col-3 p-24 b-1 column">
                 <div class="light-glow"></div>
+                <div class="fire-glow"></div>
                 <img src="{{ url_for('static', path='images/image-book.png') }}">
                 <p>
                     Изучите полезную информацию для эффективного использования WideResearcher
@@ -67,7 +68,8 @@
                 </div>
             </div>
             <div class="list-researches">
-                <a href="" class="button primary dashed">
+                <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('new_research') }}"
+                    class="button primary dashed">
                     Начать новое исследование
                 </a>
                 {% if researches|length == 0 %}
