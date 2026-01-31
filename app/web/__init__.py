@@ -4,7 +4,7 @@ from .auth import router as router_auth
 from .forms import router as router_forms
 from .index import router as router_index
 from .models import router as router_models
-from .popup import router as router_popup
+from .popups import router as router_popup
 
 router = APIRouter(tags=["web"])
 

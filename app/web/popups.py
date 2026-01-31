@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 from app.config import get_settings
 from app.core.templates import templates
 
-router = APIRouter(prefix=get_settings().prefix.popup, tags=["popup"])
+router = APIRouter(prefix=get_settings().prefix.popups, tags=["popups"])
 
 
 @router.get("/new-research", name="new_research")
@@ -26,7 +26,7 @@ async def get_popup_new_model(request: Request):
 
 @router.get("/hide", name="hide")
 async def get_popup_hide(request: Request):
-    """Рендер закрытое всплывающее окно"""
+    """Рендер закрытого всплывающего окна"""
     return templates.TemplateResponse(
         "includes/hidden_popup_overlay.html",
         {"request": request},
