@@ -22,7 +22,8 @@
             </div>
             <div class="list-models{% if not models or models|length == 0 %} column{% endif %}">
                 {% if models and not models|length == 0 %}
-                <a href="" class="button primary dashed button-model-card">
+                <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('new_model') }}"
+                    class="button primary dashed button-model-card">
                     Добавить новую модель
                 </a>
                 {% for model in models %}

@@ -23,11 +23,6 @@
                 </a>
             </div>
         </form>
-        <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="popup-close xmark-button">
-            {% set width = 20 %}
-            {% set height = 20 %}
-            {% set class = "color-text-body" %}
-            {% include 'includes/svg/xmark.svg' %}
-        </a>
+        {% include 'includes/popup_close.html' %}
     </div>
 </div>

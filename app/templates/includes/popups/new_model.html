@@ -1,0 +1,32 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup gap-24">
+        <div class="popup-header">
+            <h2>Добавление модели</h2>
+            <p>Выберите модель для добавления</p>
+        </div>
+        <form>
+            <div class="field">
+                <input type="text" placeholder="Название модели">
+                <label for="name">Название модели</label>
+            </div>
+            <div class="field">
+                <select name="model_type" id="fruit" class="input" hx-get="{{ url_for('model_options') }}"
+                    hx-swap="none" hx-trigger="change">
+                    <option value="api" selected>API</option>
+                    <option value="vllm">vLLM</option>
+                </select>
+                <label for="fruit">Тип модели</label>
+            </div>
+            {% include 'includes/forms/model_api_options.html' %}
+        </form>
+        <div class="buttons column gap-12">
+            <a href="#" class="button primary solid">
+                Добавить модель
+            </a>
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke">
+                Отмена
+            </a>
+        </div>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>

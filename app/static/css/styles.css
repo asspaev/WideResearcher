@@ -437,6 +437,7 @@ form {
 }
 
 input,
+.input,
 textarea {
     background: var(--color-input-default);
     border-radius: var(--corner-normal);
@@ -452,22 +453,26 @@ textarea {
 }
 
 input::placeholder,
+.input::placeholder,
 textarea::placeholder {
     color: var(--color-text-placeholder);
 }
 
 input:hover,
+.input:hover,
 textarea:hover {
     border: 1px solid var(--color-text-body);
 }
 
 input:focus,
+.input:focus,
 textarea:focus {
     border: 1px solid var(--color-text-body);
     color: var(--color-white-default);
 }
 
 input:active,
+.input:active,
 textarea:active {
     border: 1px solid var(--color-text-body);
     color: var(--color-white-default);
@@ -477,6 +482,81 @@ textarea {
     text-align: left;
     padding: 16px 32px;
     resize: vertical;
+}
+
+.field {
+    position: relative;
+}
+
+.field input {
+    width: 100%;
+    padding: 16px 12px;
+    font-size: 16px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.field label {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--color-text-placeholder);
+    opacity: 0;
+    transition: 0.2s ease;
+    pointer-events: none;
+}
+
+.field input:focus+label,
+.field input:not(:placeholder-shown)+label {
+    top: 12px;
+    opacity: 1;
+    font-size: 12px;
+}
+
+.field input:focus,
+.field input:not(:placeholder-shown) {
+    padding-top: 24px;
+    padding-bottom: 8px;
+}
+
+/* Стили select */
+.field select {
+    width: 100%;
+    padding: 16px 12px;
+    font-size: 16px;
+    box-sizing: border-box;
+    appearance: none;
+    background: var(--color-input-default) url("data:image/svg+xml,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>") no-repeat right 12px center;
+    background-size: 16px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.field label {
+    position: absolute;
+    left: 10px;
+    top: 12px;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--color-text-placeholder);
+    opacity: 0;
+    transition: 0.2s ease;
+    pointer-events: none;
+}
+
+.field select:focus+label,
+.field select:valid+label {
+    top: 12px;
+    opacity: 1;
+    font-size: 12px;
+}
+
+.field select:focus,
+.field select:valid {
+    padding-top: 26px;
+    padding-bottom: 6px;
 }
 
 button,
@@ -709,6 +789,11 @@ h1 {
 .gap-12 {
     display: flex;
     gap: 12px;
+}
+
+.gap-24 {
+    display: flex;
+    gap: 24px;
 }
 
 .offer-guide {
