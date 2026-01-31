@@ -42,6 +42,7 @@ class PrefixConfig(BaseModel):
     api: str = "/api"
     auth: str = "/auth"
     popup: str = "/popup"
+    form: str = "/form"
 
 
 class AppConfig(BaseModel):
