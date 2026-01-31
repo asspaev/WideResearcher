@@ -7,7 +7,7 @@
         <form>
             <div class="field">
                 <input type="text" placeholder="Название модели">
-                <label for="name">Название модели</label>
+                <label>Название модели</label>
             </div>
             <div class="field">
                 <select name="model_type" id="fruit" class="input" hx-get="{{ url_for('model_options') }}"
@@ -15,7 +15,7 @@
                     <option value="api" selected>API</option>
                     <option value="vllm">vLLM</option>
                 </select>
-                <label for="fruit">Тип модели</label>
+                <label>Тип модели</label>
             </div>
             {% include 'includes/forms/model_api_options.html' %}
         </form>
