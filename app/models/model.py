@@ -14,6 +14,7 @@ class Model(Base):
     # MODEL-параметры
     model_type: Mapped[str] = mapped_column(Text, nullable=False)
     model_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    model_api_type: Mapped[str] = mapped_column(Text)
     model_path: Mapped[str | None] = mapped_column(Text)
     model_key_api: Mapped[str | None] = mapped_column(Text)
     model_key_answer: Mapped[str | None] = mapped_column(Text)
