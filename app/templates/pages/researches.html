@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block header %}
+{% include "includes/header.html" %}
+{% endblock %}
+
+{% block main %}
+<div class="main">
+    <div class="container">
+        <div class="models-wrapper">
+            <div class="header-block">
+                <div class="row">
+                    <h1>Исследования</h1>
+                    <a href="" class=" filter">
+                        {% set width = 16 %}
+                        {% set height = 16 %}
+                        {% set class = "color-text-body" %}
+                        {% include 'includes/svg/sort.svg' %}
+                        По дате создания (сначала новые)
+                    </a>
+                </div>
+            </div>
+            {% include 'includes/lists/list_researches.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -21,7 +21,7 @@
                 {% include 'includes/svg/start-research.svg' %}
                 Новое исследование
             </a>
-            <a href="" class="header-menu{% if page == 'researches' %}-selected{% endif %}">
+            <a href="{{ url_for('researches')}}" class="header-menu{% if page == 'researches' %}-selected{% endif %}">
                 Исследования
             </a>
             <a href="{{ url_for('models')}}" class="header-menu{% if page == 'models' %}-selected{% endif %}">

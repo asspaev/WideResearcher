@@ -1,0 +1,81 @@
+<div hx-swap-oob="true" id="list_researches" class="list-researches">
+    <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('new_research') }}" class="button primary dashed">
+        Начать новое исследование
+    </a>
+    {% if researches|length == 0 %}
+    <div class="empty-block">
+        {% set width = 96 %}
+        {% set height = 96 %}
+        {% set class = "color-text-body" %}
+        {% include 'includes/svg/empty.svg' %}
+        <div class="empty-info">
+            <h4>Пусто...</h4>
+            <p>Тут пока нет ни одного исследования</p>
+        </div>
+    </div>
+    {% else %}
+    {% for research in researches %}
+    <div class="research-card">
+        <div class="card-info">
+            <a href="" class="row card-header">
+                <div class="icon">
+                    {% set width = 32 %}
+                    {% set height = 32 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/research.svg' %}
+                </div>
+                <p class="card-name">
+                    {{ research.research_name }}
+                </p>
+            </a>
+            <div class="row">
+                <div class="property">
+                    {% set width = 16 %}
+                    {% set height = 16 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/timer.svg' %}
+                    Следующее исследование {{ research.schedule_next_launch_time }}
+                </div>
+                <div class="property">
+                    {% set width = 16 %}
+                    {% set height = 16 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/git-fork.svg' %}
+                    {{ research.research_version_name }}
+                </div>
+                <div class="property">
+                    {% set width = 16 %}
+                    {% set height = 16 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/revert.svg' %}
+                    Обновлён {{ research.research_last_update_time }}
+                </div>
+            </div>
+        </div>
+        <div class="card-actions">
+            <a href="" class="button border-icon">
+                {% set width = 24 %}
+                {% set height = 24 %}
+                {% set class = "color-white-default" %}
+                {% include 'includes/svg/settings.svg' %}
+            </a>
+            <a href="" class="button border-icon">
+                {% set width = 24 %}
+                {% set height = 24 %}
+                {% set class = "color-white-default" %}
+                {% include 'includes/svg/timer.svg' %}
+            </a>
+            <a href="" class="button border-icon">
+                {% set width = 24 %}
+                {% set height = 24 %}
+                {% set class = "color-white-default" %}
+                {% include 'includes/svg/delete.svg' %}
+            </a>
+            <a href="" class="button primary solid">
+                Открыть
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
