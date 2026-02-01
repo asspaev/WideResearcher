@@ -1,0 +1,49 @@
+<div hx-swap-oob="true" id="list_models" class="list-models{% if not models or models|length == 0 %} column{% endif %}">
+    {% if models and not models|length == 0 %}
+    <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('new_model') }}"
+        class="button primary dashed button-model-card">
+        Добавить новую модель
+    </a>
+    {% for model in models %}
+    <div class="model-card">
+        <div class="card-info">
+            <div class="card-name-wrapper">
+                <p class="card-name">{{ model.model_name }}</p>
+            </div>
+            <div class="card-properties">
+                <p class="card-property">Добавлена <span>{{ model.model_created_time }}</span></p>
+                <p class="card-property">Была использована <span>{{ model.model_used_count }} раз</span></p>
+            </div>
+        </div>
+        <div class="card-actions">
+            <a href="" class="button border-icon">
+                {% set width = 24 %}
+                {% set height = 24 %}
+                {% set class = "color-white-default" %}
+                {% include 'includes/svg/settings.svg' %}
+            </a>
+            <a href="" class="button border-icon">
+                {% set width = 24 %}
+                {% set height = 24 %}
+                {% set class = "color-white-default" %}
+                {% include 'includes/svg/delete.svg' %}
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <a href="" class="button primary dashed col-max">
+        Начать новое исследование
+    </a>
+    <div class="empty-block">
+        {% set width = 96 %}
+        {% set height = 96 %}
+        {% set class = "color-text-body" %}
+        {% include 'includes/svg/empty.svg' %}
+        <div class="empty-info">
+            <h4>Пусто...</h4>
+            <p>Тут пока нет ни одной модели</p>
+        </div>
+    </div>
+    {% endif %}
+</div>

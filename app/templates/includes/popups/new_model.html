@@ -1,32 +1,35 @@
 <div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
-    <div id="popup" class="popup gap-24">
+    <div id="popup" class="popup new-model gap-24">
         <div class="popup-header">
             <h2>Добавление модели</h2>
             <p>Выберите модель для добавления</p>
         </div>
-        <form>
-            <div class="field">
-                <input type="text" placeholder="Название модели">
-                <label>Название модели</label>
+        <form class="column gap-24" hx-post="{{ url_for('api_create_model') }}" hx-trigger="submit" hx-swap="none">
+            <div class="column gap-12">
+                <div class="field">
+                    <input name="model_name" type="text" placeholder="Название модели">
+                    <label>Название модели</label>
+                </div>
+                <div class="field">
+                    <select name="model_type" class="input" hx-get="{{ url_for('model_options') }}" hx-swap="none"
+                        hx-trigger="change">
+                        <option value="api" selected>API</option>
+                        <option value="vllm">vLLM</option>
+                    </select>
+                    <label>Тип модели</label>
+                </div>
+                {% include 'includes/forms/model_api_options.html' %}
             </div>
-            <div class="field">
-                <select name="model_type" id="fruit" class="input" hx-get="{{ url_for('model_options') }}"
-                    hx-swap="none" hx-trigger="change">
-                    <option value="api" selected>API</option>
-                    <option value="vllm">vLLM</option>
-                </select>
-                <label>Тип модели</label>
+            <div class="column gap-12">
+                <button type="submit" class="primary solid">
+                    Добавить модель
+                </button>
+                <p id="result_form" class="result wrong hidden"></p>
+                <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke">
+                    Отмена
+                </a>
             </div>
-            {% include 'includes/forms/model_api_options.html' %}
         </form>
-        <div class="buttons column gap-12">
-            <a href="#" class="button primary solid">
-                Добавить модель
-            </a>
-            <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke">
-                Отмена
-            </a>
-        </div>
         {% include 'includes/popup_close.html' %}
     </div>
 </div>
