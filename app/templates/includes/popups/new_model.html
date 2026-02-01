@@ -4,7 +4,8 @@
             <h2>Добавление модели</h2>
             <p>Выберите модель для добавления</p>
         </div>
-        <form class="column gap-24" hx-post="{{ url_for('api_create_model') }}" hx-trigger="submit" hx-swap="none">
+        <form class="column gap-24" hx-post="{{ url_for('api_create_model') }}" hx-trigger="submit" hx-swap="none"
+            autocomplete="off">
             <div class="column gap-12">
                 <div class="field">
                     <input name="model_name" type="text" placeholder="Название модели">
