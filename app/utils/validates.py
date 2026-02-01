@@ -51,3 +51,21 @@ def validate_corrent_login(login: str) -> None | str:
 
     # Все проверки прошли успешно
     return None
+
+
+def validate_correct_model_name(model_name: str) -> None | str:
+    """
+    Проверяет валидность названия модели
+
+    Args:
+        model_name (str): Название модели
+
+    Returns:
+        None | str: None, если название модели валидно, иначе текст ошибки
+    """
+    # Проверка длины названия модели
+    if len(model_name) < 3 or len(model_name) > 120:
+        return "Длина названия модели должна быть от 3 до 120 символов"
+
+    # Все проверки прошли успешно
+    return None
