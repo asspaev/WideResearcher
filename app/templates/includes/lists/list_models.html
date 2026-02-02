@@ -23,7 +23,8 @@
                 {% set class = "color-white-default" %}
                 {% include 'includes/svg/settings.svg' %}
             </a>
-            <a href="" class="button border-icon">
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('delete_model', model_id=model.model_id) }}"
+                hx-swap="none" class="button border-icon warning">
                 {% set width = 24 %}
                 {% set height = 24 %}
                 {% set class = "color-white-default" %}

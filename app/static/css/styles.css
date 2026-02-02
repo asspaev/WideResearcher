@@ -310,6 +310,10 @@ main {
     color: var(--color-primary-default);
 }
 
+.color-warning-default {
+    color: var(--color-warning-default);
+}
+
 .color-white-default {
     color: var(--color-white-default);
 }
@@ -621,6 +625,18 @@ a.button.primary.stroke:hover {
     color: var(--color-black-default);
 }
 
+button.warning.stroke,
+a.button.warning.stroke {
+    border: 1px solid var(--color-warning-default);
+    color: var(--color-warning-default);
+}
+
+button.warning.stroke:hover,
+a.button.warning.stroke:hover {
+    background-color: var(--color-warning-default);
+    color: var(--color-black-default);
+}
+
 button.primary.dashed,
 a.button.primary.dashed {
     color: var(--color-primary-default);
@@ -807,6 +823,15 @@ h1 {
 .button.border-icon:active svg {
     transition: all 0s ease;
     color: var(--color-primary-default);
+}
+
+.button.border-icon.warning:active {
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' rx='6' ry='6' fill='none' stroke='%23FF3F3F' stroke-width='1' stroke-dasharray='7,7' stroke-linecap='square'/%3e%3c/svg%3e");
+}
+
+.button.border-icon.warning:hover svg,
+.button.border-icon.warning:active svg {
+    color: var(--color-warning-default);
 }
 
 .gap-12 {

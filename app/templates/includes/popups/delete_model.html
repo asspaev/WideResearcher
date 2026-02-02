@@ -1,0 +1,18 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup new-model gap-24">
+        <div class="popup-header">
+            <h2>Удаление модели</h2>
+            <p>Вы хотите удалить модель <span class="color-warning-default">{{ model_name }}</span>, вы уверены?</p>
+        </div>
+        <div class="buttons gap-12 column">
+            <a href="#" hx-trigger="click" hx-delete="{{ url_for('api_delete_model', model_id=model.model_id) }}"
+                class="button warning stroke">
+                Удалить модель
+            </a>
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke">
+                Отмена
+            </a>
+        </div>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>
