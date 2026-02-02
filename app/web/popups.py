@@ -10,7 +10,7 @@ from app.models import Model
 router = APIRouter(prefix=get_settings().prefix.popups, tags=["popups"])
 
 
-@router.get("/new-research", name="new_research")
+@router.get("/researches/new", name="new_research")
 async def get_popup_new_research(request: Request):
     """Рендер всплывающего окна для создания исследования"""
     return templates.TemplateResponse(
@@ -19,7 +19,7 @@ async def get_popup_new_research(request: Request):
     )
 
 
-@router.get("/new-model", name="new_model")
+@router.get("/models/new", name="new_model")
 async def get_popup_new_model(request: Request):
     """Рендер всплывающего окна для создания модели"""
     return templates.TemplateResponse(
@@ -37,7 +37,7 @@ async def get_popup_hide(request: Request):
     )
 
 
-@router.get("/edit-model/{model_id}", name="edit_model")
+@router.get("/models/{model_id}/edit", name="edit_model")
 async def get_edit_model(
     request: Request,
     model_id: int,
@@ -57,5 +57,31 @@ async def get_edit_model(
         {
             "request": request,
             "model": model,
+        },
+    )
+
+
+@router.get("/models/{model_id}/delete", name="delete_model")
+async def get_delete_model(
+    request: Request,
+    model_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """Рендер всплывающего окна удаления модели"""
+    # TODO Проверка, что модель принадлежит пользователю
+
+    # Поиск модели
+    model: Model | None = await get_model_by_id(session, model_id)
+    model_name: str = model.model_name
+
+    # TODO Обработка при не удачном поиске
+
+    # Рендер всплывающего онка
+    return templates.TemplateResponse(
+        "includes/popups/delete_model.html",
+        {
+            "request": request,
+            "model": model,
+            "model_name": model_name,
         },
     )
