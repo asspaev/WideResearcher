@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.core.sql import get_session
 from app.core.templates import templates
-from app.crud.model import create_model, model_exists_by_user_and_name, update_model
+from app.crud.model import create_model, delete_model, get_model_by_id, model_exists_by_user_and_name, update_model
 from app.models import Model
 from app.schemas.model import ModelCard
 from app.schemas.user import UserCookie
@@ -211,5 +211,36 @@ async def put_update_model(
             "request": request,
             "model_name": model_name,
             "models": models_cards,
+        },
+    )
+
+
+@router.delete("/{model_id}", name="api_delete_model")
+async def put_update_model(
+    request: Request,
+    model_id: int,
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Удаление модели"""
+
+    # Получение model_name
+    model: Model = await get_model_by_id(session, model_id)
+    model_name: str = model.model_name
+
+    # Удаление записи в базе данных
+    await delete_model(session, model_id)
+    logger.info(f"Model deleted: {model_id} for user {user_cookie.user_id} {user_cookie.user_login}")
+
+    # Получение всех моделей пользователя
+    models_cards: list[ModelCard] = await get_models_cards(user_cookie, session)
+
+    # Вернуть результат
+    return templates.TemplateResponse(
+        "includes/popups/model_deleted.html",
+        {
+            "request": request,
+            "models": models_cards,
+            "model_name": model_name,
         },
     )
