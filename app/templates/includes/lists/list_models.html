@@ -16,7 +16,8 @@
             </div>
         </div>
         <div class="card-actions">
-            <a href="" class="button border-icon">
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('edit_model', model_id=model.model_id) }}" hx-swap="none"
+                class="button border-icon">
                 {% set width = 24 %}
                 {% set height = 24 %}
                 {% set class = "color-white-default" %}

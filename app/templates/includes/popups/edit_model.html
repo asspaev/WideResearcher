@@ -1,0 +1,40 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup edit-model gap-24">
+        <div class="popup-header">
+            <h2>Настройки модели</h2>
+            <p>Редактирование <span class="color-text-hint">{{ model.model_name }}</span></p>
+        </div>
+        <form class="column gap-24" hx-put="{{ url_for('api_update_model', model_id=model.model_id) }}"
+            hx-trigger="submit" hx-swap="none" autocomplete="off">
+            <div class="column gap-12">
+                <div class="field">
+                    <input name="model_name" type="text" placeholder="Название модели" value="{{ model.model_name }}"
+                        readonly>
+                    <label>Название модели</label>
+                </div>
+                <div class="field">
+                    <select name="model_type" class="input" disabled>
+                        <option value="api" {% if model.model_type=='api' %}selected{% endif %}>API</option>
+                        <option value="vllm" {% if model.model_type=='vllm' %}selected{% endif %}>vLLM</option>
+                    </select>
+                    <label>Тип модели</label>
+                </div>
+                {% if model.model_type == 'api' %}
+                {% include 'includes/forms/model_api_options.html' %}
+                {% elif model.model_type == 'vllm' %}
+                {% include 'includes/forms/model_vllm_options.html' %}
+                {% endif %}
+            </div>
+            <div class="column gap-12">
+                <button type="submit" class="primary solid">
+                    Сохранить изменения
+                </button>
+                <p id="result_form" class="result wrong hidden"></p>
+                <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke">
+                    Отмена
+                </a>
+            </div>
+        </form>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>

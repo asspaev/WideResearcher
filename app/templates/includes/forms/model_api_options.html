@@ -1,12 +1,13 @@
 <div hx-swap-oob="true" id="model-options" class="model-options column gap-12">
     <div class="field">
         <select name="model_api_type" class="input">
-            <option value="openai" selected>OpenAI</option>
+            <option value="openai" {% if model and model.model_api_type=='openai' %}selected{% endif %}>OpenAI</option>
         </select>
         <label>Тип API</label>
     </div>
     <div class="field">
-        <input name="model_api_key" type="password" placeholder="Ключ API">
+        <input name="model_api_key" type="password" placeholder="Ключ API" {% if model and model.model_api_key
+            %}value="{{ model.model_api_key }}" {% endif %}>
         <label>Ключ API</label>
     </div>
 </div>

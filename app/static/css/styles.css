@@ -551,7 +551,10 @@ textarea {
 }
 
 .field select:focus+label,
-.field select:valid+label {
+.field select:valid+label,
+.field select:disabled+label,
+input:read-only+label {
+    left: 10px;
     top: 12px;
     opacity: 1;
     font-size: 12px;
@@ -561,6 +564,22 @@ textarea {
 .field select:valid {
     padding-top: 26px;
     padding-bottom: 6px;
+}
+
+.field select:disabled,
+input:read-only {
+    color: var(--color-text-hint);
+    background: var(--color-input-default);
+    padding-top: 26px;
+    padding-bottom: 6px;
+}
+
+.field:hover select:disabled,
+input:read-only:hover,
+input:read-only:focus {
+    color: var(--color-text-hint);
+    border: 1px solid var(--color-input-stroke);
+    cursor: default;
 }
 
 button,
