@@ -117,3 +117,24 @@ async def update_model(
     await session.commit()
     await session.refresh(model)
     return model
+
+
+async def delete_model(
+    session: AsyncSession,
+    model_id: int,
+) -> bool:
+    """
+    Удаляет модель по model_id.
+    Возвращает True, если модель была удалена, False если не найдена.
+    """
+    # Сначала проверяем, есть ли модель
+    result = await session.execute(select(Model).where(Model.model_id == model_id))
+    model: Model | None = result.scalar_one_or_none()
+
+    if model is None:
+        return False  # модель не найдена
+
+    # Удаляем модель
+    await session.delete(model)
+    await session.commit()
+    return True
