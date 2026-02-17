@@ -32,7 +32,8 @@
                 <form>
                     <textarea type="text" placeholder="Начните писать..."></textarea>
                     <div class="row gap-12">
-                        <a href="" class="button border-icon">
+                        <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('edit_new_research') }}"
+                            class="button border-icon">
                             {% set width = 24 %}
                             {% set height = 24 %}
                             {% set class = "color-white-default" %}

@@ -1,0 +1,69 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup settings-new-model gap-24">
+        <div class="popup-header">
+            <h2>Настройки нового исследования</h2>
+            <p>Настройте новое исследование</p>
+        </div>
+        <form class="column gap-24" hx-post="{{ url_for('api_edit_new_research') }}" hx-trigger="submit" hx-swap="none"
+            autocomplete="off">
+            <div class="block">
+                <h2>Параметры</h2>
+                <div class="field">
+                    <input name="count_epoch" type="number" placeholder="Количество эпох" value="5">
+                    <label>Количество эпох</label>
+                </div>
+            </div>
+            <div class="block">
+                <h2>Модели</h2>
+                <div class="field">
+                    <select name="model_answer" class="input">
+                        {% for model in models %}
+                        <option value="{{ model.model_id }}">{{ model.model_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Модель генерации ответа</label>
+                </div>
+                <div class="field">
+                    <select name="model_search" class="input">
+                        {% for model in models %}
+                        <option value="{{ model.model_id }}">{{ model.model_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Модель поиска информации</label>
+                </div>
+                <div class="field">
+                    <select name="model_direction" class="input">
+                        {% for model in models %}
+                        <option value="{{ model.model_id }}">{{ model.model_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label>Модель направления исследования</label>
+                </div>
+            </div>
+            <div class="block">
+                <h2>Наследование</h2>
+                <div class="field">
+                    <select name="model_parent" class="input">
+                        <!-- builder -->
+                        <option value="none" selected>Не наследовать</option>
+                    </select>
+                    <label>Предыдущее исследование</label>
+                </div>
+            </div>
+            <div class="buttons column gap-12">
+                <button class="primary solid">
+                    Сохранить настройки
+                </button>
+                <div class="row gap-12">
+                    <a href="#" class="button warning stroke col-max">
+                        Сбросить
+                    </a>
+                    <a href="#" class="button text-hint stroke col-max">
+                        Отмена
+                    </a>
+                </div>
+            </div>
+        </form>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>

@@ -1203,3 +1203,14 @@ h4 {
 .result {
     text-align: center;
 }
+
+.popup .block {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.popup .block h2 {
+    text-align: left;
+    font-size: 20px;
+}
