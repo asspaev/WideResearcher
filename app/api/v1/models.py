@@ -144,6 +144,8 @@ async def put_update_model(
         f"Received data: {model_id}, {model_name}, {model_type}, {model_api_type}, {model_api_key}, {model_path}, {model_key_answer}"
     )
 
+    # TODO Проверить, что модель принадлежит пользователю
+
     # Проверить, что необходимые поля заполнены
     if model_type == "api":
         if not model_api_type:
@@ -223,6 +225,8 @@ async def put_update_model(
     session: AsyncSession = Depends(get_session),
 ):
     """Удаление модели"""
+
+    # TODO Проверить, что модель принадлежит пользователю
 
     # Получение model_name
     model: Model = await get_model_by_id(session, model_id)

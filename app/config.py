@@ -44,6 +44,7 @@ class PrefixConfig(BaseModel):
     popups: str = "/popups"
     forms: str = "/forms"
     models: str = "/models"
+    researches: str = "/researches"
 
 
 class AppConfig(BaseModel):
