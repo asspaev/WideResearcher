@@ -48,11 +48,16 @@ async def api_edit_new_research(
             {
                 "request": request,
                 "page": "edit_new_research",
+                "has_settings": True,
                 **settings,
             },
         )
 
     return templates.TemplateResponse(
         "includes/hidden_popup_overlay.html",
-        {"request": request},
+        {
+            "request": request,
+            "has_settings": True,
+            "previous_screen": previous_screen,
+        },
     )

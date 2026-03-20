@@ -37,6 +37,7 @@ async def get_popup_new_research(
         {
             "request": request,
             "page": "edit_new_research",
+            "has_settings": saved is not None,
             **(saved or {}),
         },
     )
@@ -54,9 +55,14 @@ async def get_popup_edit_new_research(
     models: list[Model] = await get_models_by_user_id(session, user_cookie.user_id)
 
     saved: dict = {}
-    if not reset:
-        cache = get_redis_cache()
-        saved = await cache.get(f"research_settings:{user_cookie.user_id}") or {}
+    has_settings: bool = False
+    cache = get_redis_cache()
+    if reset:
+        await cache.delete(f"research_settings:{user_cookie.user_id}")
+    else:
+        raw = await cache.get(f"research_settings:{user_cookie.user_id}")
+        has_settings = raw is not None
+        saved = raw or {}
 
     return templates.TemplateResponse(
         "includes/popups/edit_new_research.html",
@@ -64,6 +70,7 @@ async def get_popup_edit_new_research(
             "request": request,
             "models": models,
             "previous_screen": previous_screen,
+            "has_settings": has_settings,
             **saved,
         },
     )

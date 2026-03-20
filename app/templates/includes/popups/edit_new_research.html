@@ -4,8 +4,8 @@
             <h2>Настройки нового исследования</h2>
             <p>Настройте новое исследование</p>
         </div>
-        <form class="column gap-24" hx-post="{{ url_for('api_edit_new_research') }}" hx-trigger="submit"
-            hx-swap="none" autocomplete="off">
+        <form class="column gap-24" hx-post="{{ url_for('api_edit_new_research') }}" hx-trigger="submit" hx-swap="none"
+            autocomplete="off">
             <input type="hidden" name="previous_screen" value="{{ previous_screen }}">
             <div class="block">
                 <h2>Параметры</h2>
@@ -20,8 +20,8 @@
                 <div class="field">
                     <select name="model_answer" class="input">
                         {% for model in models %}
-                        <option value="{{ model.model_id }}"
-                            {% if model_answer and model.model_id == model_answer %}selected{% endif %}>
+                        <option value="{{ model.model_id }}" {% if model_answer and model.model_id==model_answer
+                            %}selected{% endif %}>
                             {{ model.model_name }}
                         </option>
                         {% endfor %}
@@ -31,8 +31,8 @@
                 <div class="field">
                     <select name="model_search" class="input">
                         {% for model in models %}
-                        <option value="{{ model.model_id }}"
-                            {% if model_search and model.model_id == model_search %}selected{% endif %}>
+                        <option value="{{ model.model_id }}" {% if model_search and model.model_id==model_search
+                            %}selected{% endif %}>
                             {{ model.model_name }}
                         </option>
                         {% endfor %}
@@ -42,8 +42,8 @@
                 <div class="field">
                     <select name="model_direction" class="input">
                         {% for model in models %}
-                        <option value="{{ model.model_id }}"
-                            {% if model_direction and model.model_id == model_direction %}selected{% endif %}>
+                        <option value="{{ model.model_id }}" {% if model_direction and model.model_id==model_direction
+                            %}selected{% endif %}>
                             {{ model.model_name }}
                         </option>
                         {% endfor %}
@@ -56,7 +56,7 @@
                 <div class="field">
                     <select name="model_parent" class="input">
                         <!-- builder -->
-                        <option value="none" {% if not model_parent or model_parent == "none" %}selected{% endif %}>
+                        <option value="none" {% if not model_parent or model_parent=="none" %}selected{% endif %}>
                             Не наследовать
                         </option>
                     </select>
@@ -67,20 +67,21 @@
                 <button class="primary solid">
                     Сохранить настройки
                 </button>
-                <div class="row gap-12">
-                    <a href="#"
-                        hx-get="{{ url_for('edit_new_research') }}?reset=true&previous_screen={{ previous_screen }}"
-                        class="button warning stroke col-max">
-                        Сбросить
-                    </a>
-                    <a href="#"
-                        hx-get="{{ url_for('hide') }}"
-                        class="button text-hint stroke col-max">
-                        Отмена
-                    </a>
-                </div>
+                <a href="#"
+                    hx-get="{{ url_for('new_research') if previous_screen == 'edit_new_research' else url_for('hide') }}"
+                    class="button warning stroke col-max">
+                    Сбросить и сохранить
+                </a>
             </div>
         </form>
         {% include 'includes/popup_close.html' %}
     </div>
 </div>
+<a hx-swap-oob="outerHTML" id="new-research-settings-btn" href="#" hx-swap="none" hx-trigger="click"
+    hx-get="{{ url_for('edit_new_research') }}" hx-vals='{"previous_screen": "{{ previous_screen }}"}'
+    class="button border-icon{% if has_settings %} active{% endif %}">
+    {% set width = 24 %}
+    {% set height = 24 %}
+    {% set class = "color-white-default" %}
+    {% include 'includes/svg/settings.svg' %}
+</a>
