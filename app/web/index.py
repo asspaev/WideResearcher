@@ -57,5 +57,6 @@ async def get_index(
             "user_cookie": user_cookie,
             "researches": researches,
             "nearest_research": nearest_research,
+            "page": "index",
         },
     )

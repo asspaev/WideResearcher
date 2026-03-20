@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, Request
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.model import get_model_by_id, get_models_by_user_id
@@ -22,31 +24,47 @@ async def get_popup_hide(request: Request):
 
 
 @router.get("/researches/new", name="new_research")
-async def get_popup_new_research(request: Request):
+async def get_popup_new_research(
+    request: Request,
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
     """Рендер всплывающего окна для создания исследования"""
+    cache = get_redis_cache()
+    saved: dict | None = await cache.get(f"research_settings:{user_cookie.user_id}")
+
     return templates.TemplateResponse(
         "includes/popups/new_research.html",
-        {"request": request},
+        {
+            "request": request,
+            "page": "edit_new_research",
+            **(saved or {}),
+        },
     )
 
 
 @router.get("/researches/new/settings", name="edit_new_research")
 async def get_popup_edit_new_research(
     request: Request,
+    previous_screen: str | None = None,
+    reset: bool = False,
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
 ):
     """Рендер всплывающего окна редактирования нового исследования"""
-
-    # Получение моделей пользователя
     models: list[Model] = await get_models_by_user_id(session, user_cookie.user_id)
 
-    # Возвращение ответа
+    saved: dict = {}
+    if not reset:
+        cache = get_redis_cache()
+        saved = await cache.get(f"research_settings:{user_cookie.user_id}") or {}
+
     return templates.TemplateResponse(
         "includes/popups/edit_new_research.html",
         {
             "request": request,
             "models": models,
+            "previous_screen": previous_screen,
+            **saved,
         },
     )
 
