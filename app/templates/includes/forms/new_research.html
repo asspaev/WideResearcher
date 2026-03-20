@@ -1,8 +1,20 @@
 <form autocomplete="off">
+    <!-- settings -->
+    <input id="count_epoch" type="hidden" name="count_epoch" {% if count_epoch %}value="{{ count_epoch }}" {% endif %}>
+    <input id="model_answer" type="hidden" name="model_answer" {% if model_answer %}value="{{ model_answer }}" {% endif
+        %}>
+    <input id="model_search" type="hidden" name="model_search" {% if model_search %}value="{{ model_search }}" {% endif
+        %}>
+    <input id="model_direction" type="hidden" name="model_direction" {% if model_direction
+        %}value="{{ model_direction }}" {% endif %}>
+    <input id="model_parent" type="hidden" name="model_parent" {% if model_parent %}value="{{ model_parent }}" {% endif
+        %}>
+    <!-- form -->
     <textarea name="prompt" placeholder="Запрос на исследование"></textarea>
     <div class="column gap-12">
         <div class="row gap-12">
             <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('edit_new_research') }}"
+                hx-vals='{% if page %}{"previous_screen": "{{page}}"}{% else %}{}{% endif %}'
                 class="button border-icon">
                 {% set width = 24 %}
                 {% set height = 24 %}

@@ -4,12 +4,14 @@
             <h2>Настройки нового исследования</h2>
             <p>Настройте новое исследование</p>
         </div>
-        <form class="column gap-24" hx-post="{{ url_for('api_edit_new_research') }}" hx-trigger="submit" hx-swap="none"
-            autocomplete="off">
+        <form class="column gap-24" hx-post="{{ url_for('api_edit_new_research') }}" hx-trigger="submit"
+            hx-swap="none" autocomplete="off">
+            <input type="hidden" name="previous_screen" value="{{ previous_screen }}">
             <div class="block">
                 <h2>Параметры</h2>
                 <div class="field">
-                    <input name="count_epoch" type="number" placeholder="Количество эпох" value="5">
+                    <input name="count_epoch" type="number" placeholder="Количество эпох"
+                        value="{{ count_epoch or 5 }}">
                     <label>Количество эпох</label>
                 </div>
             </div>
@@ -18,7 +20,10 @@
                 <div class="field">
                     <select name="model_answer" class="input">
                         {% for model in models %}
-                        <option value="{{ model.model_id }}">{{ model.model_name }}</option>
+                        <option value="{{ model.model_id }}"
+                            {% if model_answer and model.model_id == model_answer %}selected{% endif %}>
+                            {{ model.model_name }}
+                        </option>
                         {% endfor %}
                     </select>
                     <label>Модель генерации ответа</label>
@@ -26,7 +31,10 @@
                 <div class="field">
                     <select name="model_search" class="input">
                         {% for model in models %}
-                        <option value="{{ model.model_id }}">{{ model.model_name }}</option>
+                        <option value="{{ model.model_id }}"
+                            {% if model_search and model.model_id == model_search %}selected{% endif %}>
+                            {{ model.model_name }}
+                        </option>
                         {% endfor %}
                     </select>
                     <label>Модель поиска информации</label>
@@ -34,7 +42,10 @@
                 <div class="field">
                     <select name="model_direction" class="input">
                         {% for model in models %}
-                        <option value="{{ model.model_id }}">{{ model.model_name }}</option>
+                        <option value="{{ model.model_id }}"
+                            {% if model_direction and model.model_id == model_direction %}selected{% endif %}>
+                            {{ model.model_name }}
+                        </option>
                         {% endfor %}
                     </select>
                     <label>Модель направления исследования</label>
@@ -45,7 +56,9 @@
                 <div class="field">
                     <select name="model_parent" class="input">
                         <!-- builder -->
-                        <option value="none" selected>Не наследовать</option>
+                        <option value="none" {% if not model_parent or model_parent == "none" %}selected{% endif %}>
+                            Не наследовать
+                        </option>
                     </select>
                     <label>Предыдущее исследование</label>
                 </div>
@@ -55,10 +68,14 @@
                     Сохранить настройки
                 </button>
                 <div class="row gap-12">
-                    <a href="#" class="button warning stroke col-max">
+                    <a href="#"
+                        hx-get="{{ url_for('edit_new_research') }}?reset=true&previous_screen={{ previous_screen }}"
+                        class="button warning stroke col-max">
                         Сбросить
                     </a>
-                    <a href="#" class="button text-hint stroke col-max">
+                    <a href="#"
+                        hx-get="{{ url_for('hide') }}"
+                        class="button text-hint stroke col-max">
                         Отмена
                     </a>
                 </div>
