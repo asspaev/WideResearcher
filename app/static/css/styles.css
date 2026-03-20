@@ -825,6 +825,14 @@ h1 {
     color: var(--color-primary-default);
 }
 
+.button.border-icon.active {
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' rx='6' ry='6' fill='none' stroke='%2300FF55' stroke-width='1' stroke-dasharray='7,7' stroke-linecap='square'/%3e%3c/svg%3e");
+}
+
+.button.border-icon.active svg {
+    color: var(--color-primary-default);
+}
+
 .button.border-icon.warning:active {
     background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' rx='6' ry='6' fill='none' stroke='%23FF3F3F' stroke-width='1' stroke-dasharray='7,7' stroke-linecap='square'/%3e%3c/svg%3e");
 }

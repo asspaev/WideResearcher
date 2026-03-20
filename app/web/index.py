@@ -5,6 +5,7 @@ from fastapi.exceptions import HTTPException
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.research import get_next_planned_research_by_user_id
@@ -49,6 +50,10 @@ async def get_index(
             schedule_next_launch_time=human_delta(schedule.scheduled_at, datetime.now(timezone.utc)),
         )
 
+    # Проверка сохранённых настроек исследования
+    cache = get_redis_cache()
+    has_settings: bool = await cache.get(f"research_settings:{user_cookie.user_id}") is not None
+
     # Рендер главной страницы
     return templates.TemplateResponse(
         "pages/index.html",
@@ -58,5 +63,6 @@ async def get_index(
             "researches": researches,
             "nearest_research": nearest_research,
             "page": "index",
+            "has_settings": has_settings,
         },
     )
