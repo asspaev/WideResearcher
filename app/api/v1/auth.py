@@ -74,7 +74,7 @@ async def login(
     response.set_cookie(key="access_token", value=jwt_token)
 
     # Установка headers
-    response.headers["HX-Redirect"] = "/main"
+    response.headers["HX-Redirect"] = "/"
 
     # Вернуть ответ
     return response
@@ -168,7 +168,7 @@ async def register(
     response.set_cookie(key="access_token", value=jwt_token)
 
     # Установка headers
-    response.headers["HX-Redirect"] = "/main"
+    response.headers["HX-Redirect"] = "/"
 
     # Вернуть ответ
     return response
