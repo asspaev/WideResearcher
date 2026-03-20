@@ -218,3 +218,7 @@ __marimo__/
 # Custom
 /drafts/
 /raw-html/
+
+# Claude
+CLAUDE.md
+/.claude/
