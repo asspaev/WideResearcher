@@ -34,8 +34,8 @@
     </div>
     {% endfor %}
     {% else %}
-    <a href="" class="button primary dashed col-max">
-        Начать новое исследование
+    <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('new_model') }}" class="button primary dashed col-max">
+        Добавить новую модель
     </a>
     <div class="empty-block">
         {% set width = 96 %}
