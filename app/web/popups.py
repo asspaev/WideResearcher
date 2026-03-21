@@ -15,22 +15,38 @@ router = APIRouter(prefix=get_settings().prefix.popups, tags=["popups"])
 
 
 @router.get("/hide", name="hide")
-async def get_popup_hide(request: Request):
+async def get_popup_hide(
+    request: Request,
+    reset: bool = False,
+    previous_screen: str | None = None,
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
     """Рендер закрытого всплывающего окна"""
+    context: dict = {"request": request}
+    if reset:
+        cache = get_redis_cache()
+        await cache.delete(f"research_settings:{user_cookie.user_id}")
+        context["has_settings"] = False
+        context["previous_screen"] = previous_screen
     return templates.TemplateResponse(
         "includes/hidden_popup_overlay.html",
-        {"request": request},
+        context,
     )
 
 
 @router.get("/researches/new", name="new_research")
 async def get_popup_new_research(
     request: Request,
+    reset: bool = False,
     user_cookie: UserCookie = Depends(get_user_cookie),
 ):
     """Рендер всплывающего окна для создания исследования"""
     cache = get_redis_cache()
-    saved: dict | None = await cache.get(f"research_settings:{user_cookie.user_id}")
+    if reset:
+        await cache.delete(f"research_settings:{user_cookie.user_id}")
+        saved = None
+    else:
+        saved: dict | None = await cache.get(f"research_settings:{user_cookie.user_id}")
 
     return templates.TemplateResponse(
         "includes/popups/new_research.html",

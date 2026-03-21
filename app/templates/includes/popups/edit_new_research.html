@@ -69,6 +69,8 @@
                 </button>
                 <a href="#"
                     hx-get="{{ url_for('new_research') if previous_screen == 'edit_new_research' else url_for('hide') }}"
+                    hx-vals='{"reset": "true", "previous_screen": "{{ previous_screen or "" }}"}'
+                    hx-swap="none"
                     class="button warning stroke col-max">
                     Сбросить и сохранить
                 </a>
