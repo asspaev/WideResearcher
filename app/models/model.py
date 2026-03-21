@@ -19,6 +19,7 @@ class Model(Base):
     model_key_api: Mapped[str | None] = mapped_column(Text)
     model_key_answer: Mapped[str | None] = mapped_column(Text)
     model_base_url: Mapped[str | None] = mapped_column(Text)
+    model_api_model: Mapped[str | None] = mapped_column(Text)
 
     # RELATIONSHIPS
     user = relationship("User", back_populates="models")

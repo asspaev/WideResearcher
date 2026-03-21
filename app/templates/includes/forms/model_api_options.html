@@ -15,4 +15,9 @@
             %}value="{{ model.model_base_url }}" {% endif %}>
         <label>Base URL</label>
     </div>
+    <div class="field">
+        <input name="model_api_model" type="text" placeholder="Название модели (опционально)" {% if model and model.model_api_model
+            %}value="{{ model.model_api_model }}" {% endif %}>
+        <label>Модель</label>
+    </div>
 </div>
