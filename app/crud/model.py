@@ -46,6 +46,7 @@ async def create_model(
     model_path: str | None = None,
     model_key_api: str | None = None,
     model_key_answer: str | None = None,
+    model_base_url: str | None = None,
 ) -> Model:
     """
     Создаёт новую запись в таблице Model и возвращает объект модели.
@@ -58,6 +59,7 @@ async def create_model(
         model_path=model_path,
         model_key_api=model_key_api,
         model_key_answer=model_key_answer,
+        model_base_url=model_base_url,
     )
 
     session.add(new_model)
@@ -89,6 +91,7 @@ async def update_model(
     model_path: str | None = None,
     model_key_api: str | None = None,
     model_key_answer: str | None = None,
+    model_base_url: str | None = None,
 ) -> Model | None:
     """
     Обновляет модель по model_id.
@@ -113,6 +116,8 @@ async def update_model(
         model.model_key_api = model_key_api
     if model_key_answer is not None:
         model.model_key_answer = model_key_answer
+    if model_base_url is not None:
+        model.model_base_url = model_base_url
 
     await session.commit()
     await session.refresh(model)

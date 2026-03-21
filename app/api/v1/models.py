@@ -25,6 +25,7 @@ async def post_create_model(
     model_api_key: str | None = Form(None),
     model_path: str | None = Form(None),
     model_key_answer: str | None = Form(None),
+    model_base_url: str | None = Form(None),
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
 ):
@@ -109,6 +110,7 @@ async def post_create_model(
         model_path,
         model_api_key,
         model_key_answer,
+        model_base_url,
     )
     logger.info(f"Model created: {model.model_id} for user {user_cookie.user_id} {user_cookie.user_login}")
 
@@ -136,6 +138,7 @@ async def put_update_model(
     model_api_key: str | None = Form(None),
     model_path: str | None = Form(None),
     model_key_answer: str | None = Form(None),
+    model_base_url: str | None = Form(None),
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
 ):
@@ -200,6 +203,7 @@ async def put_update_model(
         model_path=model_path,
         model_key_api=model_api_key,
         model_key_answer=model_key_answer,
+        model_base_url=model_base_url,
     )
     logger.info(f"Model updated: {model.model_id} for user {user_cookie.user_id} {user_cookie.user_login}")
 

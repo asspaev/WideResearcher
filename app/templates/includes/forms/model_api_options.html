@@ -10,4 +10,9 @@
             %}value="{{ model.model_api_key }}" {% endif %}>
         <label>Ключ API</label>
     </div>
+    <div class="field">
+        <input name="model_base_url" type="text" placeholder="Base URL (опционально)" {% if model and model.model_base_url
+            %}value="{{ model.model_base_url }}" {% endif %}>
+        <label>Base URL</label>
+    </div>
 </div>
