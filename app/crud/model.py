@@ -40,26 +40,18 @@ async def model_exists_by_user_and_name(
 async def create_model(
     session: AsyncSession,
     user_id: int,
-    model_type: str,
     model_name: str,
-    model_api_type: str | None = None,
-    model_path: str | None = None,
+    model_base_url: str,
+    model_api_model: str,
     model_key_api: str | None = None,
-    model_key_answer: str | None = None,
-    model_base_url: str | None = None,
-    model_api_model: str | None = None,
 ) -> Model:
     """
     Создаёт новую запись в таблице Model и возвращает объект модели.
     """
     new_model = Model(
         user_id=user_id,
-        model_type=model_type,
         model_name=model_name,
-        model_api_type=model_api_type,
-        model_path=model_path,
         model_key_api=model_key_api,
-        model_key_answer=model_key_answer,
         model_base_url=model_base_url,
         model_api_model=model_api_model,
     )
@@ -87,12 +79,8 @@ async def update_model(
     session: AsyncSession,
     model_id: int,
     *,
-    model_type: str | None = None,
     model_name: str | None = None,
-    model_api_type: str | None = None,
-    model_path: str | None = None,
     model_key_api: str | None = None,
-    model_key_answer: str | None = None,
     model_base_url: str | None = None,
     model_api_model: str | None = None,
 ) -> Model | None:
@@ -107,18 +95,10 @@ async def update_model(
     if model is None:
         return None
 
-    if model_type is not None:
-        model.model_type = model_type
     if model_name is not None:
         model.model_name = model_name
-    if model_api_type is not None:
-        model.model_api_type = model_api_type
-    if model_path is not None:
-        model.model_path = model_path
     if model_key_api is not None:
         model.model_key_api = model_key_api
-    if model_key_answer is not None:
-        model.model_key_answer = model_key_answer
     if model_base_url is not None:
         model.model_base_url = model_base_url
     if model_api_model is not None:
@@ -137,14 +117,12 @@ async def delete_model(
     Удаляет модель по model_id.
     Возвращает True, если модель была удалена, False если не найдена.
     """
-    # Сначала проверяем, есть ли модель
     result = await session.execute(select(Model).where(Model.model_id == model_id))
     model: Model | None = result.scalar_one_or_none()
 
     if model is None:
-        return False  # модель не найдена
+        return False
 
-    # Удаляем модель
     await session.delete(model)
     await session.commit()
     return True

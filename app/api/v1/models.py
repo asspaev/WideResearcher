@@ -20,19 +20,14 @@ router = APIRouter(prefix=get_settings().prefix.models, tags=["models"])
 async def post_create_model(
     request: Request,
     model_name: str = Form(...),
-    model_type: str = Form(...),
-    model_api_type: str | None = Form(None),
+    model_base_url: str = Form(...),
+    model_api_model: str = Form(...),
     model_api_key: str | None = Form(None),
-    model_path: str | None = Form(None),
-    model_key_answer: str | None = Form(None),
-    model_base_url: str | None = Form(None),
-    model_api_model: str | None = Form(None),
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
 ):
     """Создание модели"""
 
-    # Проверить, что название модели от 3 до 120 символов
     correct_model_name: str | None = validate_correct_model_name(model_name)
     if correct_model_name:
         logger.error(f"Model name is not valid: {model_name}")
@@ -45,7 +40,6 @@ async def post_create_model(
             },
         )
 
-    # Проверить, что модели с таким названием не существует
     if await model_exists_by_user_and_name(session, user_cookie.user_id, model_name):
         logger.error(f"Model already exists: {model_name} for user {user_cookie.user_id} {user_cookie.user_login}")
         return templates.TemplateResponse(
@@ -57,69 +51,18 @@ async def post_create_model(
             },
         )
 
-    # Проверить, что необходимые поля заполнены
-    if model_type == "api":
-        if not model_api_type:
-            logger.error(f"Model api type is not valid: {model_api_type}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Тип API не указан",
-                    "type": "wrong",
-                },
-            )
-        elif not model_api_key:
-            logger.error(f"Model api key is not valid: {model_api_key}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Ключ API не указан",
-                    "type": "wrong",
-                },
-            )
-    if model_type == "vllm":
-        if not model_path:
-            logger.error(f"Model path is not valid: {model_path}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Путь до модели не указан",
-                    "type": "wrong",
-                },
-            )
-        elif not model_key_answer:
-            logger.error(f"Model key answer is not valid: {model_key_answer}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Ключ ответа не указан",
-                    "type": "wrong",
-                },
-            )
-
-    # Сохранить модель в базу данных
     model: Model = await create_model(
         session,
         user_cookie.user_id,
-        model_type,
         model_name,
-        model_api_type,
-        model_path,
-        model_api_key,
-        model_key_answer,
         model_base_url,
         model_api_model,
+        model_api_key,
     )
     logger.info(f"Model created: {model.model_id} for user {user_cookie.user_id} {user_cookie.user_login}")
 
-    # Получение всех моделей пользователя
     models_cards: list[ModelCard] = await get_models_cards(user_cookie, session)
 
-    # Вернуть результат
     return templates.TemplateResponse(
         "includes/popups/model_created.html",
         {
@@ -135,86 +78,28 @@ async def put_update_model(
     request: Request,
     model_id: int,
     model_name: str = Form(...),
-    model_type: str | None = Form(None),
-    model_api_type: str | None = Form(None),
+    model_base_url: str = Form(...),
+    model_api_model: str = Form(...),
     model_api_key: str | None = Form(None),
-    model_path: str | None = Form(None),
-    model_key_answer: str | None = Form(None),
-    model_base_url: str | None = Form(None),
-    model_api_model: str | None = Form(None),
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
 ):
     """Обновление модели"""
-    logger.debug(
-        f"Received data: {model_id}, {model_name}, {model_type}, {model_api_type}, {model_api_key}, {model_path}, {model_key_answer}"
-    )
 
     # TODO Проверить, что модель принадлежит пользователю
 
-    # Проверить, что необходимые поля заполнены
-    if model_type == "api":
-        if not model_api_type:
-            logger.error(f"Model api type is not valid: {model_api_type}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Тип API не указан",
-                    "type": "wrong",
-                },
-            )
-        elif not model_api_key:
-            logger.error(f"Model api key is not valid: {model_api_key}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Ключ API не указан",
-                    "type": "wrong",
-                },
-            )
-    if model_type == "vllm":
-        if not model_path:
-            logger.error(f"Model path is not valid: {model_path}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Путь до модели не указан",
-                    "type": "wrong",
-                },
-            )
-        elif not model_key_answer:
-            logger.error(f"Model key answer is not valid: {model_key_answer}")
-            return templates.TemplateResponse(
-                "partials/result_form.html",
-                {
-                    "request": request,
-                    "message": "Ключ ответа не указан",
-                    "type": "wrong",
-                },
-            )
-
-    # Обновление записи в базе данных
     model: Model = await update_model(
         session,
         model_id,
-        model_type=model_type,
         model_name=model_name,
-        model_api_type=model_api_type,
-        model_path=model_path,
         model_key_api=model_api_key,
-        model_key_answer=model_key_answer,
         model_base_url=model_base_url,
         model_api_model=model_api_model,
     )
     logger.info(f"Model updated: {model.model_id} for user {user_cookie.user_id} {user_cookie.user_login}")
 
-    # Получение всех моделей пользователя
     models_cards: list[ModelCard] = await get_models_cards(user_cookie, session)
 
-    # Вернуть результат
     return templates.TemplateResponse(
         "includes/popups/model_edited.html",
         {
@@ -236,18 +121,14 @@ async def put_update_model(
 
     # TODO Проверить, что модель принадлежит пользователю
 
-    # Получение model_name
     model: Model = await get_model_by_id(session, model_id)
     model_name: str = model.model_name
 
-    # Удаление записи в базе данных
     await delete_model(session, model_id)
     logger.info(f"Model deleted: {model_id} for user {user_cookie.user_id} {user_cookie.user_login}")
 
-    # Получение всех моделей пользователя
     models_cards: list[ModelCard] = await get_models_cards(user_cookie, session)
 
-    # Вернуть результат
     return templates.TemplateResponse(
         "includes/popups/model_deleted.html",
         {
