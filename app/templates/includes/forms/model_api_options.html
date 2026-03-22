@@ -1,23 +1,17 @@
-<div hx-swap-oob="true" id="model-options" class="model-options column gap-12">
+<div id="model-options" class="model-options column gap-12">
     <div class="field">
-        <select name="model_api_type" class="input">
-            <option value="openai" {% if model and model.model_api_type=='openai' %}selected{% endif %}>OpenAI</option>
-        </select>
-        <label>Тип API</label>
+        <input name="model_api_model" type="text" placeholder="Название модели (например, gpt-4o)" {% if model and model.model_api_model
+            %}value="{{ model.model_api_model }}" {% endif %}>
+        <label>Модель</label>
+    </div>
+    <div class="field">
+        <input name="model_base_url" type="text" placeholder="Base URL (например, https://api.openai.com/v1)" {% if model and model.model_base_url
+            %}value="{{ model.model_base_url }}" {% endif %}>
+        <label>Base URL</label>
     </div>
     <div class="field">
         <input name="model_api_key" type="password" placeholder="Ключ API" {% if model and model.model_key_api
             %}value="{{ model.model_key_api }}" {% endif %}>
         <label>Ключ API</label>
-    </div>
-    <div class="field">
-        <input name="model_base_url" type="text" placeholder="Base URL (опционально)" {% if model and model.model_base_url
-            %}value="{{ model.model_base_url }}" {% endif %}>
-        <label>Base URL</label>
-    </div>
-    <div class="field">
-        <input name="model_api_model" type="text" placeholder="Название модели (опционально)" {% if model and model.model_api_model
-            %}value="{{ model.model_api_model }}" {% endif %}>
-        <label>Модель</label>
     </div>
 </div>

@@ -11,14 +11,6 @@
                     <input name="model_name" type="text" placeholder="Название модели">
                     <label>Название модели</label>
                 </div>
-                <div class="field">
-                    <select name="model_type" class="input" hx-get="{{ url_for('model_options') }}" hx-swap="none"
-                        hx-trigger="change">
-                        <option value="api" selected>API</option>
-                        <option value="vllm">vLLM</option>
-                    </select>
-                    <label>Тип модели</label>
-                </div>
                 {% include 'includes/forms/model_api_options.html' %}
             </div>
             <div class="column gap-12">
