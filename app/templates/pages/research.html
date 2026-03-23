@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block header %}
+{% include 'includes/header.html' %}
+{% endblock %}
+
+{% block main %}
+<div class="main">
+    <div class="container">
+
+        <div class="title-research">
+            <div class="name-research">
+                <h1>Исследование: Интеллектуальные системы прогнозирования: новые подходы и алгоритмы</h1>
+                <div class="icon">
+                    {% set width = 20 %}
+                    {% set height = 20 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/edit.svg' %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="property">
+                    {% set width = 16 %}
+                    {% set height = 16 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/timer.svg' %}
+                    Следующее исследование {{ research.schedule_next_launch_time }}
+                </div>
+                <div class="property">
+                    {% set width = 16 %}
+                    {% set height = 16 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/git-fork.svg' %}
+                    {{ research.research_version_name }}
+                </div>
+                <div class="property">
+                    {% set width = 16 %}
+                    {% set height = 16 %}
+                    {% set class = "color-text-body" %}
+                    {% include 'includes/svg/revert.svg' %}
+                    Обновлён {{ research.research_last_update_time }}
+                </div>
+            </div>
+        </div>
+
+        <div class="container-research">
+
+            <div class="research-body">
+
+                <div class="b-1 p-32 content-research">
+                    <div class="empty-block">
+                        {% set width = 96 %}
+                        {% set height = 96 %}
+                        {% set class = "color-text-body" %}
+                        {% include 'includes/svg/research.svg' %}
+                        <div class="empty-info">
+                            <h4>Исследование в процессе</h4>
+                            <p>Скоро появится статья...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="b-1 p-32 next-step-research">
+                    <input class="input" type="text" placeholder="Начните писать подсказку для следующего этапа исследования...">
+                    <div class="buttons-row">
+                        <button class="button border-icon">
+                            {% set width = 24 %}
+                            {% set height = 24 %}
+                            {% set class = "color-text-body" %}
+                            {% include 'includes/svg/settings.svg' %}
+                        </button>
+                        <button class="primary solid flex-1">Начать следующий этап исследования</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="research-menu">
+
+                <div class="b-1 p-32 research-block">
+                    <h3>Версионирование</h3>
+                    <div class="version-slider">
+                        <button class="version-arrow">&#8249;</button>
+                        <span class="version-name">{{ research.research_version_name }}</span>
+                        <button class="version-arrow">&#8250;</button>
+                    </div>
+                    <div class="buttons-row">
+                        <button class="primary solid flex-1">Переименовать</button>
+                        <button class="primary solid flex-1">Список версий</button>
+                    </div>
+                </div>
+
+                <div class="b-1 p-32 research-block">
+                    <h3>Информация об исследовании</h3>
+                    <div class="research-property-block">
+                        <strong>Зона поиска</strong>
+                        <p>Зона поиска не ограничена</p>
+                    </div>
+                    <div class="research-models-block">
+                        <h4>Выбранные модели</h4>
+                        <div class="research-property-item">
+                            <p>ChatGPT v4</p>
+                            <span>Модель генерации ответа</span>
+                        </div>
+                        <div class="research-property-item">
+                            <p>Llama v3.1</p>
+                            <span>Модель поиска информации</span>
+                        </div>
+                        <div class="research-property-item">
+                            <p>Custom My Model</p>
+                            <span>Модель направления исследования</span>
+                        </div>
+                    </div>
+                    <div class="research-property-block">
+                        <strong>Унаследована от</strong>
+                        <p>Версия 6</p>
+                    </div>
+                </div>
+
+                <div class="b-1 p-32 research-block">
+                    <h3>Планировщик</h3>
+                    <div class="research-properties">
+                        <div class="research-property-item">
+                            <p>1 день и 22 часа</p>
+                            <span>Следующее исследование начнётся через</span>
+                        </div>
+                        <div class="research-property-item">
+                            <p>Каждые 7 дней</p>
+                            <span>Следующее исследование повторяется</span>
+                        </div>
+                    </div>
+                    <div class="buttons-col">
+                        <button class="primary solid">Настроить</button>
+                        <button class="text-hint stroke">Удалить запланированные исследования</button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

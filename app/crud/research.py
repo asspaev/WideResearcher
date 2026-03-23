@@ -24,6 +24,16 @@ async def get_all_researches_with_schedules_by_user_id(
     return result.all()
 
 
+async def get_research_by_id_and_user_id(
+    session: AsyncSession,
+    research_id: int,
+    user_id: int,
+) -> Research | None:
+    stmt = select(Research).where(Research.research_id == research_id, Research.user_id == user_id)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def get_next_planned_research_by_user_id(
     session: AsyncSession,
     user_id: int,
