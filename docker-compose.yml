@@ -39,6 +39,34 @@ services:
     networks:
       - wideresearcher-network
 
+  celery-worker:
+    build: .
+    container_name: wideresearcher-celery-worker
+    restart: always
+    command: ["celery", "-A", "app.core.celery:celery_app", "worker", "--loglevel=info"]
+    networks:
+      - wideresearcher-network
+    volumes:
+      - ./app:/workdir/app
+      - ./.env:/workdir/.env
+    depends_on:
+      - redis
+      - postgres
+
+  celery-beat:
+    build: .
+    container_name: wideresearcher-celery-beat
+    restart: always
+    command: ["celery", "-A", "app.core.celery:celery_app", "beat", "--loglevel=info"]
+    networks:
+      - wideresearcher-network
+    volumes:
+      - ./app:/workdir/app
+      - ./.env:/workdir/.env
+    depends_on:
+      - redis
+      - celery-worker
+
 networks:
   wideresearcher-network:
 
