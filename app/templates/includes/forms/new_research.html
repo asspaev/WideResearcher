@@ -1,14 +1,10 @@
-<form autocomplete="off">
+<form autocomplete="off" hx-post="{{ url_for('api_create_research') }}" hx-swap="none">
     <!-- settings -->
-    <input id="count_epoch" type="hidden" name="count_epoch" {% if count_epoch %}value="{{ count_epoch }}" {% endif %}>
-    <input id="model_answer" type="hidden" name="model_answer" {% if model_answer %}value="{{ model_answer }}" {% endif
-        %}>
-    <input id="model_search" type="hidden" name="model_search" {% if model_search %}value="{{ model_search }}" {% endif
-        %}>
-    <input id="model_direction" type="hidden" name="model_direction" {% if model_direction
-        %}value="{{ model_direction }}" {% endif %}>
-    <input id="model_parent" type="hidden" name="model_parent" {% if model_parent %}value="{{ model_parent }}" {% endif
-        %}>
+    {% if count_epoch %}<input type="hidden" name="count_epoch" value="{{ count_epoch }}">{% endif %}
+    {% if model_answer %}<input type="hidden" name="model_answer" value="{{ model_answer }}">{% endif %}
+    {% if model_search %}<input type="hidden" name="model_search" value="{{ model_search }}">{% endif %}
+    {% if model_direction %}<input type="hidden" name="model_direction" value="{{ model_direction }}">{% endif %}
+    {% if model_parent %}<input type="hidden" name="model_parent" value="{{ model_parent }}">{% endif %}
     <!-- form -->
     <textarea name="prompt" placeholder="Запрос на исследование"></textarea>
     <div class="column gap-12">
