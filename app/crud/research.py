@@ -2,7 +2,36 @@ from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Research, ResearchSchedule
+from app.models.research import ResearchStatus
 from app.models.research_schedule import ScheduleStatus
+
+
+async def create_research(
+    session: AsyncSession,
+    user_id: int,
+    research_name: str,
+    research_version_name: str,
+    settings_epochs_count: int,
+    model_id_answer: int,
+    model_id_search: int,
+    model_id_direction: int | None = None,
+    research_parent_id: int | None = None,
+) -> Research:
+    research = Research(
+        user_id=user_id,
+        research_status=ResearchStatus.IN_PROCESS,
+        research_name=research_name,
+        research_version_name=research_version_name,
+        settings_epochs_count=settings_epochs_count,
+        model_id_answer=model_id_answer,
+        model_id_search=model_id_search,
+        model_id_direction=model_id_direction,
+        research_parent_id=research_parent_id,
+    )
+    session.add(research)
+    await session.commit()
+    await session.refresh(research)
+    return research
 
 
 async def get_all_researches_with_schedules_by_user_id(
