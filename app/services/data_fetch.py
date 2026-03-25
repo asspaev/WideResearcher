@@ -5,6 +5,7 @@ from fastapi.exceptions import HTTPException
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.redis_cache import RedisCache
 from app.crud.model import get_models_by_user_id
 from app.crud.model_output import count_model_outputs_by_model_id
 from app.crud.research import get_all_researches_with_schedules_by_user_id
@@ -13,6 +14,34 @@ from app.schemas.model import ModelCard
 from app.schemas.research import ResearchCard
 from app.schemas.user import UserCookie
 from app.utils.datetime import format_added_at, human_delta
+
+
+def research_settings_redis_key(user_id: int) -> str:
+    return f"research_settings:{user_id}"
+
+
+async def get_research_settings(
+    user_id: int,
+    session: AsyncSession,
+    cache: RedisCache,
+) -> dict:
+    """Возвращает настройки нового исследования из Redis или дефолтные значения.
+
+    Дефолт: count_epoch=5, model_answer/model_search = первая модель пользователя (или None).
+    """
+    saved = await cache.get(research_settings_redis_key(user_id))
+    if saved:
+        return saved
+
+    models: list[Model] = await get_models_by_user_id(session, user_id)
+    default_model_id: int | None = models[0].model_id if models else None
+    return {
+        "count_epoch": 5,
+        "model_answer": default_model_id,
+        "model_search": default_model_id,
+        "model_direction": None,
+        "model_parent": "none",
+    }
 
 
 async def get_models_cards(

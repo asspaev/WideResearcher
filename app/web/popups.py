@@ -9,6 +9,7 @@ from app.core.templates import templates
 from app.crud.model import get_model_by_id, get_models_by_user_id
 from app.models import Model
 from app.schemas.user import UserCookie
+from app.services.data_fetch import research_settings_redis_key
 from app.utils.dependencies import get_user_cookie
 
 router = APIRouter(prefix=get_settings().prefix.popups, tags=["popups"])
@@ -25,7 +26,7 @@ async def get_popup_hide(
     context: dict = {"request": request}
     if reset:
         cache = get_redis_cache()
-        await cache.delete(f"research_settings:{user_cookie.user_id}")
+        await cache.delete(research_settings_redis_key(user_cookie.user_id))
         context["has_settings"] = False
         context["previous_screen"] = previous_screen
     return templates.TemplateResponse(
@@ -43,10 +44,10 @@ async def get_popup_new_research(
     """Рендер всплывающего окна для создания исследования"""
     cache = get_redis_cache()
     if reset:
-        await cache.delete(f"research_settings:{user_cookie.user_id}")
+        await cache.delete(research_settings_redis_key(user_cookie.user_id))
         saved = None
     else:
-        saved: dict | None = await cache.get(f"research_settings:{user_cookie.user_id}")
+        saved: dict | None = await cache.get(research_settings_redis_key(user_cookie.user_id))
 
     return templates.TemplateResponse(
         "includes/popups/new_research.html",
@@ -74,9 +75,9 @@ async def get_popup_edit_new_research(
     has_settings: bool = False
     cache = get_redis_cache()
     if reset:
-        await cache.delete(f"research_settings:{user_cookie.user_id}")
+        await cache.delete(research_settings_redis_key(user_cookie.user_id))
     else:
-        raw = await cache.get(f"research_settings:{user_cookie.user_id}")
+        raw = await cache.get(research_settings_redis_key(user_cookie.user_id))
         has_settings = raw is not None
         saved = raw or {}
 
