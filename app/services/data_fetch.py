@@ -39,7 +39,7 @@ async def get_research_settings(
         "count_epoch": 5,
         "model_answer": default_model_id,
         "model_search": default_model_id,
-        "model_direction": None,
+        "model_direction": default_model_id,
         "model_parent": "none",
     }
 

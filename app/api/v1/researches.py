@@ -33,10 +33,13 @@ async def post_create_research(
     session: AsyncSession = Depends(get_session),
 ):
     """Создание исследования и запуск Celery-задачи"""
-    if not model_answer or not model_search:
+    if not model_answer or not model_search or model_direction is None:
         settings = await get_research_settings(user_cookie.user_id, session, get_redis_cache())
         model_answer = model_answer or settings.get("model_answer")
         model_search = model_search or settings.get("model_search")
+        if model_direction is None:
+            model_direction = settings.get("model_direction")
+        logger.debug(f"Model direction for new research: {model_direction}")
 
     if not model_answer or not model_search:
         return templates.TemplateResponse(
