@@ -2,6 +2,32 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ModelOutput
+from app.models.model_output import ModelResponseStatus
+
+
+async def create_model_output(
+    session: AsyncSession,
+    model_id: int,
+    research_id: int,
+    epoch_id: int,
+    step_type: str,
+    model_input: dict,
+    model_output: dict,
+    response_status: ModelResponseStatus = ModelResponseStatus.COMPLETE,
+) -> ModelOutput:
+    record = ModelOutput(
+        model_id=model_id,
+        research_id=research_id,
+        epoch_id=epoch_id,
+        response_status=response_status,
+        step_type=step_type,
+        model_input=model_input,
+        model_output=model_output,
+    )
+    session.add(record)
+    await session.commit()
+    await session.refresh(record)
+    return record
 
 
 async def count_model_outputs_by_model_id(
