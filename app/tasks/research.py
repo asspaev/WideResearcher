@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,11 +9,11 @@ from app.core.sql import get_sql
 from app.crud.model import get_model_by_id
 from app.crud.model_output import create_model_output
 from app.crud.research import get_research_by_id
-from app.crud.research_epoch import create_research_epoch
+from app.crud.research_epoch import create_research_epoch, update_research_epoch_keywords
 from app.models.model_output import ModelResponseStatus
 from app.models.research import Research
 from app.services.llm_client import LLMClient
-from app.services.prompts import build_direction_messages
+from app.services.prompts import build_direction_messages, build_search_keywords_messages
 
 
 @celery_app.task(name="research.run")
@@ -28,7 +29,11 @@ async def _run_research(research_id: int) -> None:
             logger.error(f"run_research: research {research_id} not found")
             return
 
-        await _step_direction_brainstorm(session, research)
+        # Шаг 1: брейншторм направлений исследования → сохраняем эпоху и вектор
+        direction = await _step_direction_brainstorm(session, research)
+
+        # Шаг 2: генерация поисковых запросов → сохраняем в research_search_keywords эпохи
+        await _step_search_keywords(session, research, direction)
 
 
 async def _step_direction_brainstorm(session: AsyncSession, research: Research) -> str:
@@ -98,3 +103,81 @@ async def _step_direction_brainstorm(session: AsyncSession, research: Research) 
     )
 
     return direction_content or ""
+
+
+async def _step_search_keywords(
+    session: AsyncSession,
+    research: Research,
+    direction: str,
+    n_keywords: int = 5,
+) -> list[str]:
+    """Шаг 2: генерация поисковых запросов для SearXNG.
+
+    Вызывает model_id_search с темой и направлением исследования,
+    парсит JSON-массив строк и сохраняет в research_search_keywords эпохи.
+
+    Args:
+        session: Активная сессия БД.
+        research: ORM-объект исследования.
+        direction: Результат шага direction_brainstorm.
+        n_keywords: Количество поисковых запросов.
+
+    Returns:
+        Список поисковых запросов или пустой список при ошибке.
+    """
+    model = await get_model_by_id(session, research.model_id_search)
+    if model is None:
+        logger.error(f"_step_search_keywords: search model {research.model_id_search} not found")
+        return []
+
+    llm = LLMClient(
+        model_name=model.model_api_model,
+        base_url=model.model_base_url,
+        api_key=model.model_key_api,
+    )
+
+    messages = build_search_keywords_messages(
+        query=research.research_name,
+        direction=direction,
+        n_keywords=n_keywords,
+    )
+
+    status = ModelResponseStatus.COMPLETE
+    output_payload: dict = {}
+    keywords: list[str] = []
+
+    try:
+        result = await llm.generate(messages)
+        keywords = json.loads(result)
+        if not isinstance(keywords, list):
+            raise ValueError(f"expected JSON array, got {type(keywords).__name__}")
+        keywords = [str(k) for k in keywords]
+        output_payload = {"keywords": keywords}
+        logger.info(
+            f"_step_search_keywords: generated {len(keywords)} keywords " f"(research_id={research.research_id})"
+        )
+    except Exception as exc:
+        status = ModelResponseStatus.ERROR
+        output_payload = {"error": str(exc)}
+        logger.error(f"_step_search_keywords: failed (research_id={research.research_id}): {exc}")
+
+    await create_model_output(
+        session=session,
+        model_id=research.model_id_search,
+        research_id=research.research_id,
+        epoch_id=0,
+        step_type="search_keywords",
+        model_input={"messages": messages},
+        model_output=output_payload,
+        response_status=status,
+    )
+
+    if keywords:
+        await update_research_epoch_keywords(
+            session=session,
+            research_id=research.research_id,
+            epoch_id=0,
+            keywords=keywords,
+        )
+
+    return keywords
