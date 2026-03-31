@@ -4,6 +4,7 @@ import json
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.core.celery import celery_app
 from app.core.sql import get_sql
 from app.crud.model import get_model_by_id
@@ -14,6 +15,9 @@ from app.models.model_output import ModelResponseStatus
 from app.models.research import Research
 from app.services.llm_client import LLMClient
 from app.services.prompts import build_direction_messages, build_search_keywords_messages
+from app.services.searxng_client import SearXNGClient
+
+SEARCH_RESULTS_PER_KEYWORD = 20
 
 
 @celery_app.task(name="research.run")
@@ -33,7 +37,10 @@ async def _run_research(research_id: int) -> None:
         direction = await _step_direction_brainstorm(session, research)
 
         # Шаг 2: генерация поисковых запросов → сохраняем в research_search_keywords эпохи
-        await _step_search_keywords(session, research, direction)
+        keywords = await _step_search_keywords(session, research, direction)
+
+        # Шаг 3: поиск по каждому ключевому слову через SearXNG
+        await _step_search(research, keywords)
 
 
 async def _step_direction_brainstorm(session: AsyncSession, research: Research) -> str:
@@ -181,3 +188,34 @@ async def _step_search_keywords(
         )
 
     return keywords
+
+
+async def _step_search(research: Research, keywords: list[str]) -> None:
+    """Шаг 3: поиск через SearXNG по каждому ключевому слову.
+
+    Для каждого ключевого слова выполняет поиск и логирует результаты
+    (title, url, description) в logger.debug.
+
+    Args:
+        research: ORM-объект исследования.
+        keywords: Список поисковых запросов из шага search_keywords.
+    """
+    if not keywords:
+        logger.warning(f"_step_search: no keywords, skipping (research_id={research.research_id})")
+        return
+
+    settings = get_settings()
+    client = SearXNGClient(base_url=settings.searxng.url)
+
+    for keyword in keywords:
+        try:
+            results = await client.search(keyword, n_results=SEARCH_RESULTS_PER_KEYWORD)
+            logger.debug(
+                f"_step_search: keyword={keyword!r} → {len(results)} results " f"(research_id={research.research_id})"
+            )
+            for i, r in enumerate(results, 1):
+                logger.debug(f"  [{i}] title={r.title!r} url={r.url!r} description={r.description!r}")
+        except Exception as exc:
+            logger.error(
+                f"_step_search: failed for keyword={keyword!r} " f"(research_id={research.research_id}): {exc}"
+            )

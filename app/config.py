@@ -58,6 +58,10 @@ class AuthConfig(BaseModel):
     algorithm: str = "RS256"
 
 
+class SearXNGConfig(BaseModel):
+    url: str = "http://localhost:8080"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -71,6 +75,7 @@ class Settings(BaseSettings):
     redis: RedisConfig
     sql: SqlConfig
     auth: AuthConfig = AuthConfig()
+    searxng: SearXNGConfig = SearXNGConfig()
 
 
 @lru_cache()
