@@ -39,6 +39,27 @@ async def update_research_epoch_keywords(
     await session.commit()
 
 
+async def update_research_epoch_search_links(
+    session: AsyncSession,
+    research_id: int,
+    epoch_id: int,
+    links: list[dict],
+) -> None:
+    """Сохраняет топ-ссылки поиска в поле research_result_search_links эпохи.
+
+    Args:
+        session: Активная сессия БД.
+        research_id: ID исследования.
+        epoch_id: ID эпохи.
+        links: Список ссылок с метаданными (title, url, total_score).
+    """
+    epoch = await get_research_epoch(session, research_id, epoch_id)
+    if epoch is None:
+        return
+    epoch.research_result_search_links = links
+    await session.commit()
+
+
 async def create_research_epoch(
     session: AsyncSession,
     research_id: int,

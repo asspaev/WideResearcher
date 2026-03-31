@@ -10,11 +10,21 @@ from app.core.sql import get_sql
 from app.crud.model import get_model_by_id
 from app.crud.model_output import create_model_output
 from app.crud.research import get_research_by_id
-from app.crud.research_epoch import create_research_epoch, update_research_epoch_keywords
+from app.crud.research_epoch import (
+    create_research_epoch,
+    update_research_epoch_keywords,
+    update_research_epoch_search_links,
+)
 from app.models.model_output import ModelResponseStatus
 from app.models.research import Research
 from app.services.llm_client import LLMClient
-from app.services.prompts import build_direction_messages, build_search_keywords_messages
+from app.services.prompts import (
+    SearchResultScores,
+    SearchResultToScore,
+    build_direction_messages,
+    build_relevance_messages,
+    build_search_keywords_messages,
+)
 from app.services.searxng_client import SearXNGClient
 
 SEARCH_RESULTS_PER_KEYWORD = 20
@@ -39,8 +49,8 @@ async def _run_research(research_id: int) -> None:
         # Шаг 2: генерация поисковых запросов → сохраняем в research_search_keywords эпохи
         keywords = await _step_search_keywords(session, research, direction)
 
-        # Шаг 3: поиск по каждому ключевому слову через SearXNG
-        await _step_search(research, keywords)
+        # Шаг 3: поиск по каждому ключевому слову через SearXNG + оценка релевантности
+        await _step_search(session, research, keywords, direction)
 
 
 async def _step_direction_brainstorm(session: AsyncSession, research: Research) -> str:
@@ -190,15 +200,25 @@ async def _step_search_keywords(
     return keywords
 
 
-async def _step_search(research: Research, keywords: list[str]) -> None:
-    """Шаг 3: поиск через SearXNG по каждому ключевому слову.
+RELEVANCE_BATCH_SIZE = 10
 
-    Для каждого ключевого слова выполняет поиск и логирует результаты
-    (title, url, description) в logger.debug.
+
+async def _step_search(
+    session: AsyncSession,
+    research: Research,
+    keywords: list[str],
+    direction: str,
+) -> None:
+    """Шаг 3: поиск через SearXNG + оценка релевантности результатов.
+
+    Для каждого ключевого слова выполняет поиск, затем отправляет результаты
+    батчами по 10 в model_id_research для оценки релевантности по шкале 0.0–1.0.
 
     Args:
+        session: Активная сессия БД.
         research: ORM-объект исследования.
         keywords: Список поисковых запросов из шага search_keywords.
+        direction: Результат шага direction_brainstorm (векторы исследования).
     """
     if not keywords:
         logger.warning(f"_step_search: no keywords, skipping (research_id={research.research_id})")
@@ -206,6 +226,23 @@ async def _step_search(research: Research, keywords: list[str]) -> None:
 
     settings = get_settings()
     client = SearXNGClient(base_url=settings.searxng.url)
+
+    model = await get_model_by_id(session, research.model_id_search)
+    llm: LLMClient | None = None
+    if model is None:
+        logger.warning(
+            f"_step_search: search model {research.model_id_search} not found, "
+            f"skipping relevance scoring (research_id={research.research_id})"
+        )
+    else:
+        llm = LLMClient(
+            model_name=model.model_api_model,
+            base_url=model.model_base_url,
+            api_key=model.model_key_api,
+        )
+
+    # (title, url, total_score) по всем keyword'ам
+    scored_documents: list[tuple[str, str, float]] = []
 
     for keyword in keywords:
         try:
@@ -219,3 +256,65 @@ async def _step_search(research: Research, keywords: list[str]) -> None:
             logger.error(
                 f"_step_search: failed for keyword={keyword!r} " f"(research_id={research.research_id}): {exc}"
             )
+            continue
+
+        if llm is None:
+            continue
+
+        # Оценка релевантности батчами по RELEVANCE_BATCH_SIZE
+        for batch_start in range(0, len(results), RELEVANCE_BATCH_SIZE):
+            batch = results[batch_start : batch_start + RELEVANCE_BATCH_SIZE]
+            to_score = [SearchResultToScore(title=r.title, description=r.description) for r in batch]
+            try:
+                messages = build_relevance_messages(
+                    query=research.research_name,
+                    direction=direction,
+                    keyword=keyword,
+                    results=to_score,
+                )
+                raw = await llm.generate(messages)
+                scores = [SearchResultScores(**item) for item in json.loads(raw)]
+                logger.debug(
+                    f"_step_search: relevance scores for keyword={keyword!r} "
+                    f"batch={batch_start + 1}-{batch_start + len(batch)} "
+                    f"(research_id={research.research_id})"
+                )
+                for idx, s in enumerate(scores):
+                    result = batch[idx]
+                    total = (
+                        s.point_1
+                        + s.point_2
+                        + s.point_3
+                        + s.point_4
+                        + s.point_5
+                        + s.point_6
+                        + s.point_7
+                        + s.point_8
+                        + s.point_9
+                        + s.point_10
+                    )
+                    scored_documents.append((result.title, result.url, total))
+                    logger.debug(
+                        f"  [{batch_start + idx + 1}] total={total:.1f} "
+                        f"p1={s.point_1} p2={s.point_2} p3={s.point_3} p4={s.point_4} p5={s.point_5} "
+                        f"p6={s.point_6} p7={s.point_7} p8={s.point_8} p9={s.point_9} p10={s.point_10}"
+                    )
+            except Exception as exc:
+                logger.error(
+                    f"_step_search: relevance scoring failed for keyword={keyword!r} "
+                    f"batch={batch_start + 1}-{batch_start + len(batch)} "
+                    f"(research_id={research.research_id}): {exc}"
+                )
+
+    if scored_documents:
+        top10 = sorted(scored_documents, key=lambda x: x[2], reverse=True)[:10]
+        logger.debug(f"_step_search: top-10 documents by total score (research_id={research.research_id})")
+        for rank, (title, url, total) in enumerate(top10, 1):
+            logger.debug(f"  #{rank} total={total:.1f} title={title!r} url={url!r}")
+
+        await update_research_epoch_search_links(
+            session=session,
+            research_id=research.research_id,
+            epoch_id=0,
+            links=[{"title": title, "url": url, "total_score": total} for title, url, total in top10],
+        )
