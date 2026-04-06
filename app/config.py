@@ -50,6 +50,7 @@ class PrefixConfig(BaseModel):
 class AppConfig(BaseModel):
     host: str
     port: int
+    fast: bool = False
 
 
 class AuthConfig(BaseModel):
