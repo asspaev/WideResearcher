@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ec0bb66cf4dd
+Revision ID: 9ba09ee663f1
 Revises:
-Create Date: 2026-01-17 08:45:45.581549
+Create Date: 2026-04-16 03:03:46.107356
 
 """
 
@@ -12,8 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-# revision identifiers, used by Alembic.
-revision: str = "ec0bb66cf4dd"
+revision: str = "9ba09ee663f1"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -39,7 +38,7 @@ def upgrade() -> None:
         "users",
         sa.Column("user_id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("user_login", sa.String(length=32), nullable=False),
-        sa.Column("user_password_hash", sa.Text(), nullable=False),
+        sa.Column("user_password_hash", sa.LargeBinary(), nullable=False),
         sa.Column("meta_created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("meta_updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("user_id", name=op.f("pk_users")),
@@ -49,11 +48,10 @@ def upgrade() -> None:
         "models",
         sa.Column("model_id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
-        sa.Column("model_type", sa.Text(), nullable=False),
         sa.Column("model_name", sa.String(length=120), nullable=False),
-        sa.Column("model_path", sa.Text(), nullable=True),
         sa.Column("model_key_api", sa.Text(), nullable=True),
-        sa.Column("model_key_answer", sa.Text(), nullable=True),
+        sa.Column("model_base_url", sa.Text(), nullable=False),
+        sa.Column("model_api_model", sa.Text(), nullable=False),
         sa.Column("meta_created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("meta_updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.user_id"], name=op.f("fk_models_user_id_users")),
@@ -69,7 +67,9 @@ def upgrade() -> None:
             postgresql.ENUM("IN_PROCESS", "COMPLETE", "ERROR", name="research_status_enum"),
             nullable=False,
         ),
+        sa.Column("research_stage", sa.Text(), nullable=False),
         sa.Column("research_name", sa.Text(), nullable=False),
+        sa.Column("research_version_name", sa.Text(), nullable=False),
         sa.Column("research_body", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("settings_search_areas", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("settings_exclude_search_areas", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
