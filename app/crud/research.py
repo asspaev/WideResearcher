@@ -6,6 +6,24 @@ from app.models.research import RESEARCH_STAGES, ResearchStatus
 from app.models.research_schedule import ScheduleStatus
 
 
+async def get_planned_schedule_by_research_id(
+    session: AsyncSession,
+    research_id: int,
+) -> ResearchSchedule | None:
+    """Возвращает ближайшее PLANNED расписание для указанного исследования."""
+    stmt = (
+        select(ResearchSchedule)
+        .where(
+            ResearchSchedule.research_id == research_id,
+            ResearchSchedule.status == ScheduleStatus.PLANNED,
+        )
+        .order_by(asc(ResearchSchedule.scheduled_at))
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def create_research(
     session: AsyncSession,
     user_id: int,
