@@ -3,6 +3,7 @@
 import asyncio
 import json
 import random
+import re
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -523,12 +524,12 @@ class ResearchPipeline:
 
         status = ModelResponseStatus.COMPLETE
         output_payload: dict = {}
-        html_result: str = ""
+        segments: list[dict] = []
 
         try:
             raw = await llm.generate(messages)
-            html_result = self._format_as_html(raw)
-            output_payload = {"html": html_result}
+            segments = self._format_as_segments(raw)
+            output_payload = {"segments": segments}
             logger.info(f"_step_write_article: done (research_id={research.research_id})")
         except Exception as exc:
             status = ModelResponseStatus.ERROR
@@ -547,33 +548,61 @@ class ResearchPipeline:
             response_status=status,
         )
 
-        if html_result:
+        if segments:
             await update_research_epoch_body_finish(
                 session=self._session,
                 research_id=research.research_id,
                 epoch_id=0,
-                body_finish={"html": html_result},
+                body_finish={"segments": segments},
             )
 
     @staticmethod
-    def _format_as_html(text: str) -> str:
-        """Конвертирует Markdown-текст в HTML только с тегами h1/h2/h3/p/li.
+    def _apply_inline_markdown(text: str) -> str:
+        """Заменяет inline Markdown-разметку на HTML-теги <b> и <i>.
+
+        Args:
+            text: Строка с возможной inline-разметкой.
+
+        Returns:
+            Строка с заменёнными тегами <b> и <i>.
+        """
+        text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+        text = re.sub(r"\*(.+?)\*", r"<i>\1</i>", text)
+        text = re.sub(r"_(.+?)_", r"<i>\1</i>", text)
+        return text
+
+    @staticmethod
+    def _format_as_segments(text: str) -> list[dict]:
+        """Конвертирует Markdown-текст в список сегментов с типом и контентом.
 
         Args:
             text: Текст в Markdown-разметке от LLM.
 
         Returns:
-            HTML-строка, содержащая только теги <h1>, <h2>, <h3>, <p>, <li>.
+            Список словарей с ключами type, content, is_like, is_dislike, comment.
+            Поддерживаемые типы: h1, h2, h3, p, li.
+            Inline-разметка **bold** и *italic*/_italic_ конвертируется в <b>/<i>.
         """
+        apply = ResearchPipeline._apply_inline_markdown
+
+        def make_segment(tag: str, content: str) -> dict:
+            return {
+                "type": tag,
+                "content": apply(content),
+                "is_like": False,
+                "is_dislike": False,
+                "comment": None,
+            }
+
         lines = text.splitlines()
-        parts: list[str] = []
+        segments: list[dict] = []
         paragraph_lines: list[str] = []
 
         def flush_paragraph() -> None:
             if paragraph_lines:
                 content = " ".join(paragraph_lines).strip()
                 if content:
-                    parts.append(f"<p>{content}</p>")
+                    segments.append(make_segment("p", content))
                 paragraph_lines.clear()
 
         for line in lines:
@@ -583,18 +612,18 @@ class ResearchPipeline:
                 continue
             if stripped.startswith("### "):
                 flush_paragraph()
-                parts.append(f"<h3>{stripped[4:].strip()}</h3>")
+                segments.append(make_segment("h3", stripped[4:].strip()))
             elif stripped.startswith("## "):
                 flush_paragraph()
-                parts.append(f"<h2>{stripped[3:].strip()}</h2>")
+                segments.append(make_segment("h2", stripped[3:].strip()))
             elif stripped.startswith("# "):
                 flush_paragraph()
-                parts.append(f"<h1>{stripped[2:].strip()}</h1>")
+                segments.append(make_segment("h1", stripped[2:].strip()))
             elif stripped.startswith(("- ", "* ", "• ")):
                 flush_paragraph()
-                parts.append(f"<li>{stripped[2:].strip()}</li>")
+                segments.append(make_segment("li", stripped[2:].strip()))
             else:
                 paragraph_lines.append(stripped)
 
         flush_paragraph()
-        return "\n".join(parts)
+        return segments
