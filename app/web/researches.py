@@ -7,7 +7,7 @@ from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.research import get_research_by_id_and_user_id
 from app.schemas.user import UserCookie
-from app.services.data_fetch import get_researches_cards
+from app.services.data_fetch import get_research_detail, get_researches_cards
 from app.utils.dependencies import get_user_cookie
 
 router = APIRouter()
@@ -47,6 +47,8 @@ async def get_research(
     if research is None:
         return RedirectResponse(url="/researches", status_code=302)
 
+    detail = await get_research_detail(research, session)
+
     return templates.TemplateResponse(
         "pages/research.html",
         {
@@ -54,5 +56,6 @@ async def get_research(
             "user_cookie": user_cookie,
             "page": "research",
             "research": research,
+            **detail,
         },
     )

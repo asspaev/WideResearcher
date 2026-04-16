@@ -6,14 +6,19 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.redis_cache import RedisCache
-from app.crud.model import get_models_by_user_id
+from app.crud.model import get_model_by_id, get_models_by_user_id
 from app.crud.model_output import count_model_outputs_by_model_id
-from app.crud.research import get_all_researches_with_schedules_by_user_id
+from app.crud.research import (
+    get_all_researches_with_schedules_by_user_id,
+    get_planned_schedule_by_research_id,
+    get_research_by_id,
+)
+from app.crud.research_epoch import get_research_epoch
 from app.models import Model, Research, ResearchSchedule
 from app.schemas.model import ModelCard
 from app.schemas.research import ResearchCard
 from app.schemas.user import UserCookie
-from app.utils.datetime import format_added_at, human_delta
+from app.utils.datetime import format_added_at, format_interval, human_delta
 
 
 def research_settings_redis_key(user_id: int) -> str:
@@ -118,3 +123,76 @@ async def get_researches_cards(
 
     # Возврат списка исследований
     return researches
+
+
+async def get_research_detail(
+    research: Research,
+    session: AsyncSession,
+) -> dict:
+    """Собирает детальные данные об исследовании для страницы research.
+
+    Args:
+        research: ORM-объект исследования.
+        session: Активная сессия БД.
+
+    Returns:
+        Словарь с полями: segments, schedule_next_launch_time, schedule_interval,
+        research_last_update_time, model_answer_name, model_search_name,
+        model_direction_name, parent_version_name, search_areas_text, has_schedule.
+    """
+    now = datetime.now(timezone.utc)
+
+    # Расписание
+    schedule = await get_planned_schedule_by_research_id(session, research.research_id)
+    if schedule is not None:
+        schedule_next_launch_time = human_delta(schedule.scheduled_at, now)
+        schedule_interval = format_interval(schedule.repeat_interval)
+    else:
+        schedule_next_launch_time = "не запланировано"
+        schedule_interval = None
+
+    # Время последнего обновления
+    research_last_update_time = human_delta(research.meta_updated_at, now)
+
+    # Модели
+    model_answer = await get_model_by_id(session, research.model_id_answer)
+    model_search = await get_model_by_id(session, research.model_id_search)
+    model_direction = (
+        await get_model_by_id(session, research.model_id_direction) if research.model_id_direction else None
+    )
+
+    # Родительское исследование
+    parent = await get_research_by_id(session, research.research_parent_id) if research.research_parent_id else None
+
+    # Сегменты из эпохи 0
+    epoch = await get_research_epoch(session, research.research_id, 0)
+    segments: list[dict] | None = None
+    if epoch is not None and epoch.research_body_finish:
+        body = epoch.research_body_finish
+        if isinstance(body, list):
+            segments = body
+        elif isinstance(body, dict):
+            segments = body.get("segments")
+
+    # Зоны поиска
+    areas = research.settings_search_areas
+    if areas:
+        if isinstance(areas, list):
+            search_areas_text = ", ".join(str(a) for a in areas)
+        else:
+            search_areas_text = str(areas)
+    else:
+        search_areas_text = None
+
+    return {
+        "segments": segments,
+        "has_schedule": schedule is not None,
+        "schedule_next_launch_time": schedule_next_launch_time,
+        "schedule_interval": schedule_interval,
+        "research_last_update_time": research_last_update_time,
+        "model_answer_name": model_answer.model_name if model_answer else None,
+        "model_search_name": model_search.model_name if model_search else None,
+        "model_direction_name": model_direction.model_name if model_direction else None,
+        "parent_version_name": parent.research_version_name if parent else None,
+        "search_areas_text": search_areas_text,
+    }
