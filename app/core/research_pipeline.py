@@ -76,7 +76,12 @@ class ResearchPipeline:
         Шаги выполняются последовательно; результат каждого шага передаётся
         в следующий.
         """
-        direction = await self._step_direction_brainstorm()
+        try:
+            direction = await self._step_direction_brainstorm()
+        except Exception:
+            await update_research_status(self._session, self._research, ResearchStatus.ERROR)
+            return
+
         keywords = await self._step_search_keywords(direction)
         await self._step_search(keywords, direction)
         await self._step_scrape()
@@ -125,6 +130,7 @@ class ResearchPipeline:
         output_payload: dict = {}
         direction_content: str | None = None
 
+        caught_exc: Exception | None = None
         try:
             result = await llm.generate(messages)
             output_payload = {"content": result}
@@ -133,8 +139,8 @@ class ResearchPipeline:
         except Exception as exc:
             status = ModelResponseStatus.ERROR
             output_payload = {"error": str(exc)}
-            self._has_error = True
-            logger.error(f"_step_direction_brainstorm: failed " f"(research_id={research.research_id}): {exc}")
+            caught_exc = exc
+            logger.exception(f"_step_direction_brainstorm: failed (research_id={research.research_id}): {exc}")
 
         await create_model_output(
             session=self._session,
@@ -156,6 +162,9 @@ class ResearchPipeline:
             direction_content=direction_content,
         )
 
+        if caught_exc is not None:
+            raise caught_exc
+
         return direction_content or ""
 
     # ------------------------------------------------------------------
@@ -175,6 +184,10 @@ class ResearchPipeline:
             Список поисковых запросов или пустой список при ошибке.
         """
         research = self._research
+        if self._has_error:
+            logger.debug(f"_step_search_keywords: skipping due to previous error (research_id={research.research_id})")
+            return []
+
         await update_research_stage(self._session, research, RESEARCH_STAGES["KEYWORDS"])
 
         model = await get_model_by_id(self._session, research.model_id_search)
@@ -251,9 +264,12 @@ class ResearchPipeline:
             direction: Результат шага direction_brainstorm (векторы исследования).
         """
         research = self._research
+        if self._has_error:
+            logger.debug(f"_step_search: skipping due to previous error (research_id={research.research_id})")
+            return
 
         if not keywords:
-            logger.warning(f"_step_search: no keywords, skipping " f"(research_id={research.research_id})")
+            logger.warning(f"_step_search: no keywords, skipping (research_id={research.research_id})")
             return
 
         await update_research_stage(self._session, research, RESEARCH_STAGES["SEARCH"])
@@ -388,6 +404,10 @@ class ResearchPipeline:
         контент через PageCleaner и сохраняет в таблицу scrapped_pages.
         """
         research = self._research
+        if self._has_error:
+            logger.debug(f"_step_scrape: skipping due to previous error (research_id={research.research_id})")
+            return
+
         epoch = await get_research_epoch(self._session, research.research_id, 0)
         if epoch is None or not epoch.research_result_search_links:
             logger.warning(f"_step_scrape: no links to scrape (research_id={research.research_id})")
@@ -396,37 +416,48 @@ class ResearchPipeline:
         await update_research_stage(self._session, research, RESEARCH_STAGES["SCRAPE"])
 
         links: list[dict] = epoch.research_result_search_links
-        logger.info(f"_step_scrape: scraping {len(links)} pages (research_id={research.research_id})")
+        research_id = research.research_id  # кэшируем до цикла — сессия может сломаться
+        logger.info(f"_step_scrape: scraping {len(links)} pages (research_id={research_id})")
 
+        _BINARY_EXTENSIONS = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".tar", ".gz", ".rar")
         scraper = WebScraper()
         cleaner = PageCleaner()
         semaphore = asyncio.Semaphore(SCRAPE_SEMAPHORE_LIMIT)
 
-        async def _scrape_one(link: dict) -> None:
+        async def _fetch_one(link: dict) -> tuple[str, str | None, str | None]:
             url: str = link["url"]
+            if url.lower().split("?")[0].endswith(_BINARY_EXTENSIONS):
+                logger.debug(f"_step_scrape: skipping binary URL {url!r}")
+                return url, None, None
             async with semaphore:
                 raw_html = await scraper.fetch(url)
-
             if raw_html is None:
+                logger.warning(f"_step_scrape: failed to fetch {url!r}")
+                return url, None, None
+            clean_text = cleaner.clean(raw_html)
+            return url, raw_html, clean_text
+
+        fetched = await asyncio.gather(*[_fetch_one(link) for link in links])
+
+        for url, raw_html, clean_text in fetched:
+            try:
+                raw_content = raw_html.replace("\x00", "") if raw_html else ""
+                clean_content = clean_text.replace("\x00", "") if clean_text else None
                 await upsert_scrapped_page(
                     session=self._session,
                     url=url,
-                    raw_content="",
-                    clean_content=None,
-                    status=ScrapeStatus.ERROR,
+                    raw_content=raw_content,
+                    clean_content=clean_content,
+                    status=ScrapeStatus.SUCCESS if raw_html is not None else ScrapeStatus.ERROR,
                 )
-                logger.warning(f"_step_scrape: failed to fetch {url!r}")
-                return
+                if raw_html is not None:
+                    logger.debug(
+                        f"_step_scrape: saved {url!r} (clean_len={len(clean_content) if clean_content else 0})"
+                    )
+            except Exception as exc:
+                self._has_error = True
+                await self._session.rollback()
+                logger.error(f"_step_scrape: failed to save {url!r} (research_id={research_id}): {exc}")
 
-            clean_text = cleaner.clean(raw_html)
-            await upsert_scrapped_page(
-                session=self._session,
-                url=url,
-                raw_content=raw_html,
-                clean_content=clean_text,
-                status=ScrapeStatus.SUCCESS,
-            )
-            logger.debug(f"_step_scrape: saved {url!r} " f"(clean_len={len(clean_text) if clean_text else 0})")
-
-        await asyncio.gather(*[_scrape_one(link) for link in links])
-        logger.info(f"_step_scrape: done (research_id={research.research_id})")
+        if not self._has_error:
+            logger.info(f"_step_scrape: done (research_id={research_id})")
