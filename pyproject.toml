@@ -24,7 +24,10 @@ dependencies = [
     "celery (>=5.4.0,<6.0.0)",
     "openai (>=2.30.0,<3.0.0)",
     "aiohttp (>=3.13.4,<4.0.0)",
-    "pydantic-ai (>=1.74.0,<2.0.0)"
+    "pydantic-ai (>=1.74.0,<2.0.0)",
+    "trafilatura (>=2.0.0,<3.0.0)",
+    "curl-cffi (>=0.15.0,<0.16.0)",
+    "fake-useragent (>=2.2.0,<3.0.0)"
 ]
 
 
