@@ -109,6 +109,7 @@ async def get_researches_cards(
         research_card: ResearchCard = ResearchCard(
             research_id=research.research_id,
             research_name=research.research_name,
+            research_stage=research.research_stage,
             research_version_name=research.research_version_name,
             research_last_update_time=research_last_update_time,
             schedule_next_launch_time=schedule_next_launch_time,
