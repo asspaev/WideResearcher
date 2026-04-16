@@ -222,3 +222,6 @@ __marimo__/
 # Claude
 CLAUDE.md
 /.claude/
+
+# Local VKR Text
+/vkr/
