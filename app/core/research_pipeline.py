@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.crud.model import get_model_by_id
 from app.crud.model_output import create_model_output
-from app.crud.research import update_research_stage
+from app.crud.research import update_research_stage, update_research_status
 from app.crud.research_epoch import (
     create_research_epoch,
     get_research_epoch,
@@ -19,7 +19,7 @@ from app.crud.research_epoch import (
 )
 from app.crud.scrapped_page import upsert_scrapped_page
 from app.models.model_output import ModelResponseStatus
-from app.models.research import RESEARCH_STAGES, Research
+from app.models.research import RESEARCH_STAGES, Research, ResearchStatus
 from app.models.scrapped_page import ScrapeStatus
 from app.services.llm_client import LLMClient
 from app.services.page_cleaner import PageCleaner
@@ -68,6 +68,7 @@ class ResearchPipeline:
         self._n_results = n_results
         self._n_keywords = n_keywords
         self._relevance_batch_size = relevance_batch_size
+        self._has_error = False
 
     async def run(self) -> None:
         """Запускает полный пайплайн исследования.
@@ -79,7 +80,11 @@ class ResearchPipeline:
         keywords = await self._step_search_keywords(direction)
         await self._step_search(keywords, direction)
         await self._step_scrape()
-        await update_research_stage(self._session, self._research, RESEARCH_STAGES["DONE"])
+        if self._has_error:
+            await update_research_status(self._session, self._research, ResearchStatus.ERROR)
+        else:
+            await update_research_stage(self._session, self._research, RESEARCH_STAGES["DONE"])
+            await update_research_status(self._session, self._research, ResearchStatus.COMPLETE)
 
     # ------------------------------------------------------------------
     # Шаг 1: направление исследования
@@ -128,6 +133,7 @@ class ResearchPipeline:
         except Exception as exc:
             status = ModelResponseStatus.ERROR
             output_payload = {"error": str(exc)}
+            self._has_error = True
             logger.error(f"_step_direction_brainstorm: failed " f"(research_id={research.research_id}): {exc}")
 
         await create_model_output(
@@ -204,6 +210,7 @@ class ResearchPipeline:
         except Exception as exc:
             status = ModelResponseStatus.ERROR
             output_payload = {"error": str(exc)}
+            self._has_error = True
             logger.error(f"_step_search_keywords: failed " f"(research_id={research.research_id}): {exc}")
 
         await create_model_output(
@@ -244,11 +251,12 @@ class ResearchPipeline:
             direction: Результат шага direction_brainstorm (векторы исследования).
         """
         research = self._research
-        await update_research_stage(self._session, research, RESEARCH_STAGES["SEARCH"])
 
         if not keywords:
             logger.warning(f"_step_search: no keywords, skipping " f"(research_id={research.research_id})")
             return
+
+        await update_research_stage(self._session, research, RESEARCH_STAGES["SEARCH"])
 
         settings = get_settings()
         client = SearXNGClient(base_url=settings.searxng.url)
@@ -380,11 +388,12 @@ class ResearchPipeline:
         контент через PageCleaner и сохраняет в таблицу scrapped_pages.
         """
         research = self._research
-        await update_research_stage(self._session, research, RESEARCH_STAGES["SCRAPE"])
         epoch = await get_research_epoch(self._session, research.research_id, 0)
         if epoch is None or not epoch.research_result_search_links:
             logger.warning(f"_step_scrape: no links to scrape (research_id={research.research_id})")
             return
+
+        await update_research_stage(self._session, research, RESEARCH_STAGES["SCRAPE"])
 
         links: list[dict] = epoch.research_result_search_links
         logger.info(f"_step_scrape: scraping {len(links)} pages (research_id={research.research_id})")
