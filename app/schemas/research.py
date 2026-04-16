@@ -7,6 +7,7 @@ class ResearchBase(BaseModel):
 
 
 class ResearchCard(ResearchBase):
+    research_stage: str
     research_version_name: str
     research_last_update_time: str
     schedule_next_launch_time: str
