@@ -6,6 +6,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
+RESEARCH_STAGES: dict[str, str] = {
+    "LAUNCH": "LAUNCH",
+    "DIRECTION": "DIRECTION",
+    "KEYWORDS": "KEYWORDS",
+    "SEARCH": "SEARCH",
+    "SCRAPE": "SCRAPE",
+    "DONE": "DONE",
+}
+
 
 class ResearchStatus(enum.Enum):
     IN_PROCESS = "IN_PROCESS"
@@ -30,6 +39,7 @@ class Research(Base):
     research_status: Mapped[ResearchStatus] = mapped_column(
         ENUM(ResearchStatus, name="research_status_enum"), nullable=False
     )
+    research_stage: Mapped[str] = mapped_column(Text, nullable=False)
     research_name: Mapped[str] = mapped_column(Text, nullable=False)
     research_version_name: Mapped[str] = mapped_column(Text, nullable=False)
     research_body: Mapped[dict | None] = mapped_column(JSONB)

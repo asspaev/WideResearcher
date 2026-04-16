@@ -2,7 +2,7 @@ from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Research, ResearchSchedule
-from app.models.research import ResearchStatus
+from app.models.research import RESEARCH_STAGES, ResearchStatus
 from app.models.research_schedule import ScheduleStatus
 
 
@@ -20,6 +20,7 @@ async def create_research(
     research = Research(
         user_id=user_id,
         research_status=ResearchStatus.IN_PROCESS,
+        research_stage=RESEARCH_STAGES["LAUNCH"],
         research_name=research_name,
         research_version_name=research_version_name,
         settings_epochs_count=settings_epochs_count,
@@ -51,6 +52,15 @@ async def get_all_researches_with_schedules_by_user_id(
 
     result = await session.execute(stmt)
     return result.all()
+
+
+async def update_research_stage(
+    session: AsyncSession,
+    research: Research,
+    stage: str,
+) -> None:
+    research.research_stage = stage
+    await session.commit()
 
 
 async def get_research_by_id(
