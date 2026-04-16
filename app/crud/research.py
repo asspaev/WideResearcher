@@ -63,6 +63,15 @@ async def update_research_stage(
     await session.commit()
 
 
+async def update_research_status(
+    session: AsyncSession,
+    research: Research,
+    status: ResearchStatus,
+) -> None:
+    research.research_status = status
+    await session.commit()
+
+
 async def get_research_by_id(
     session: AsyncSession,
     research_id: int,
