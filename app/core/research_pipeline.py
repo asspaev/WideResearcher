@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.crud.model import get_model_by_id
 from app.crud.model_output import create_model_output
+from app.crud.page_summary import get_page_summaries_by_epoch, upsert_page_summary
 from app.crud.research import update_research_stage, update_research_status
 from app.crud.research_epoch import (
     create_research_epoch,
@@ -31,6 +32,7 @@ from app.services.prompts import (
     build_direction_messages,
     build_relevance_messages,
     build_search_keywords_messages,
+    build_summarize_page_messages,
     build_write_article_messages,
 )
 from app.services.searxng_client import SearXNGClient
@@ -90,6 +92,7 @@ class ResearchPipeline:
         keywords = await self._step_search_keywords(direction)
         await self._step_search(keywords, direction)
         await self._step_scrape()
+        await self._step_summarize_pages(direction)
         await self._step_write_article(direction)
         if self._has_error:
             await update_research_status(self._session, self._research, ResearchStatus.ERROR)
@@ -112,6 +115,9 @@ class ResearchPipeline:
             Ответ модели или пустую строку при ошибке / отсутствии модели.
         """
         research = self._research
+        logger.info(
+            f"[ШАГ 1 | DIRECTION] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
+        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["DIRECTION"])
 
         if research.model_id_direction is None:
@@ -194,6 +200,9 @@ class ResearchPipeline:
             logger.debug(f"_step_search_keywords: skipping due to previous error (research_id={research.research_id})")
             return []
 
+        logger.info(
+            f"[ШАГ 2 | KEYWORDS] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
+        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["KEYWORDS"])
 
         model = await get_model_by_id(self._session, research.model_id_search)
@@ -278,6 +287,9 @@ class ResearchPipeline:
             logger.warning(f"_step_search: no keywords, skipping (research_id={research.research_id})")
             return
 
+        logger.info(
+            f"[ШАГ 3 | SEARCH] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
+        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["SEARCH"])
 
         settings = get_settings()
@@ -419,6 +431,9 @@ class ResearchPipeline:
             logger.warning(f"_step_scrape: no links to scrape (research_id={research.research_id})")
             return
 
+        logger.info(
+            f"[ШАГ 4 | SCRAPE] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
+        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["SCRAPE"])
 
         links: list[dict] = epoch.research_result_search_links
@@ -469,15 +484,92 @@ class ResearchPipeline:
             logger.info(f"_step_scrape: done (research_id={research_id})")
 
     # ------------------------------------------------------------------
-    # Шаг 5: написание итоговой статьи
+    # Шаг 5: формирование саммари страниц
+    # ------------------------------------------------------------------
+
+    async def _step_summarize_pages(self, direction: str) -> None:
+        """Формирует саммари для каждой скрапнутой страницы текущей эпохи.
+
+        Читает топ-ссылки из эпохи 0, для каждой страницы с контентом вызывает
+        model_id_answer для генерации саммари и сохраняет результат в page_summaries.
+
+        Args:
+            direction: Результат шага direction_brainstorm (векторы исследования).
+        """
+        research = self._research
+        if self._has_error:
+            logger.debug(f"_step_summarize_pages: skipping due to previous error (research_id={research.research_id})")
+            return
+
+        epoch = await get_research_epoch(self._session, research.research_id, 0)
+        if epoch is None or not epoch.research_result_search_links:
+            logger.warning(f"_step_summarize_pages: no links found (research_id={research.research_id})")
+            return
+
+        logger.info(
+            f"[ШАГ 5 | SUMMARIZE] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
+        )
+        await update_research_stage(self._session, research, RESEARCH_STAGES["SUMMARIZE"])
+
+        model = await get_model_by_id(self._session, research.model_id_answer)
+        if model is None:
+            logger.error(f"_step_summarize_pages: answer model {research.model_id_answer} not found")
+            self._has_error = True
+            return
+
+        llm = LLMClient(
+            model_name=model.model_api_model,
+            base_url=model.model_base_url,
+            api_key=model.model_key_api,
+        )
+
+        query: str = (epoch.research_body_start or {}).get("query", research.research_name)
+        links: list[dict] = epoch.research_result_search_links or []
+
+        for link in links:
+            url: str = link["url"]
+            page = await get_scrapped_page(self._session, url)
+            if page is None or not page.page_clean_content:
+                logger.debug(f"_step_summarize_pages: no content for {url!r}, skipping")
+                continue
+
+            content = page.page_clean_content[:PAGE_CONTENT_MAX_CHARS]
+            messages = build_summarize_page_messages(
+                query=query,
+                direction=direction or "",
+                page_content=content,
+            )
+
+            try:
+                summary = await llm.generate(messages)
+                await upsert_page_summary(
+                    session=self._session,
+                    page_url=url,
+                    research_id=research.research_id,
+                    epoch_id=0,
+                    page_summary=summary,
+                )
+                logger.debug(
+                    f"_step_summarize_pages: summarized {url!r} "
+                    f"(summary_len={len(summary)} research_id={research.research_id})"
+                )
+            except Exception as exc:
+                logger.error(
+                    f"_step_summarize_pages: failed for {url!r} " f"(research_id={research.research_id}): {exc}"
+                )
+
+        logger.info(f"_step_summarize_pages: done (research_id={research.research_id})")
+
+    # ------------------------------------------------------------------
+    # Шаг 6: написание итоговой статьи
     # ------------------------------------------------------------------
 
     async def _step_write_article(self, direction: str) -> None:
-        """Пишет итоговую исследовательскую статью на основе собранных материалов.
+        """Пишет итоговую исследовательскую статью на основе саммари источников.
 
-        Читает скрапнутые страницы для топ-ссылок эпохи 0, формирует контекст,
+        Читает page_summaries для эпохи 0, формирует контекст,
         вызывает model_id_answer для генерации статьи, обрабатывает результат
-        через _format_as_html и сохраняет в research_body_finish эпохи 0.
+        через _format_as_segments и сохраняет в research_body_finish эпохи 0.
 
         Args:
             direction: Результат шага direction_brainstorm (векторы исследования).
@@ -492,6 +584,9 @@ class ResearchPipeline:
             logger.warning(f"_step_write_article: epoch 0 not found (research_id={research.research_id})")
             return
 
+        logger.info(
+            f"[ШАГ 6 | WRITE] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
+        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["WRITE"])
 
         model = await get_model_by_id(self._session, research.model_id_answer)
@@ -500,20 +595,14 @@ class ResearchPipeline:
             self._has_error = True
             return
 
-        links: list[dict] = epoch.research_result_search_links or []
-        pages_content: list[dict] = []
-        for link in links:
-            url: str = link["url"]
-            page = await get_scrapped_page(self._session, url)
-            if page is not None and page.page_clean_content:
-                content = page.page_clean_content[:PAGE_CONTENT_MAX_CHARS]
-                pages_content.append({"url": url, "content": content})
+        page_summaries = await get_page_summaries_by_epoch(self._session, research.research_id, 0)
+        summaries: list[dict] = [{"url": ps.page_url, "summary": ps.page_summary} for ps in page_summaries]
 
         query: str = (epoch.research_body_start or {}).get("query", research.research_name)
         messages = build_write_article_messages(
             query=query,
             direction=direction or "",
-            pages_content=pages_content,
+            summaries=summaries,
         )
 
         llm = LLMClient(
