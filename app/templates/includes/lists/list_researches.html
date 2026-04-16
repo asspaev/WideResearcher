@@ -17,7 +17,7 @@
     {% for research in researches %}
     <div class="research-card">
         <div class="card-info">
-            <a href="" class="row card-header">
+            <a href="{{ url_for('research', research_id=research.research_id) }}" class="row card-header">
                 <div class="icon">
                     {% set width = 32 %}
                     {% set height = 32 %}
@@ -71,7 +71,7 @@
                 {% set class = "color-white-default" %}
                 {% include 'includes/svg/delete.svg' %}
             </a>
-            <a href="" class="button primary solid">
+            <a href="{{ url_for('research', research_id=research.research_id) }}" class="button primary solid">
                 Открыть
             </a>
         </div>
