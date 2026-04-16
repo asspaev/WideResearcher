@@ -7,6 +7,8 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
+from app.config import get_settings
+
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -37,6 +39,7 @@ class LLMClient:
         self._client = AsyncOpenAI(
             base_url=base_url,
             api_key=self._api_key,
+            timeout=get_settings().app.llm_timeout,
         )
 
     async def generate(self, context: list[dict]) -> str:

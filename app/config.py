@@ -51,6 +51,7 @@ class AppConfig(BaseModel):
     host: str
     port: int
     fast: bool = False
+    llm_timeout: float = 3600.0
 
 
 class AuthConfig(BaseModel):
