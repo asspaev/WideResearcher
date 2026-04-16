@@ -10,6 +10,8 @@ services:
     volumes:
       - ./app:/workdir/app
       - ./.env:/workdir/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - redis
       - postgres
@@ -62,6 +64,8 @@ services:
     volumes:
       - ./app:/workdir/app
       - ./.env:/workdir/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - redis
       - postgres
