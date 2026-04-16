@@ -49,7 +49,7 @@ class LLMClient:
         Returns:
             Текст ответа модели (content первого choice).
         """
-        logger.debug(f"LLMClient: generate model={self.model_name} messages={len(context)}")
+        logger.debug(f"LLMClient: generate model={self.model_name} base_url={self._base_url} messages={len(context)}")
         response = await self._client.chat.completions.create(
             model=self.model_name,
             messages=context,
