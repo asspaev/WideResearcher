@@ -21,3 +21,4 @@ class ResearchEpoch(Base):
 
     # RELATIONSHIPS
     research = relationship("Research", back_populates="epochs")
+    page_summaries = relationship("PageSummary", back_populates="epoch")

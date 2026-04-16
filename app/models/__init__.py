@@ -2,6 +2,7 @@ __all__ = [
     "Base",
     "Model",
     "ModelOutput",
+    "PageSummary",
     "Research",
     "ResearchEpoch",
     "ResearchSchedule",
@@ -13,6 +14,7 @@ __all__ = [
 from .base import Base
 from .model import Model
 from .model_output import ModelOutput
+from .page_summary import PageSummary
 from .research import Research
 from .research_epoch import ResearchEpoch
 from .research_schedule import ResearchSchedule

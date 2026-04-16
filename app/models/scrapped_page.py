@@ -2,7 +2,7 @@ import enum
 
 from sqlalchemy import Text
 from sqlalchemy.dialects.postgresql import ENUM
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
@@ -23,3 +23,6 @@ class ScrappedPage(Base):
     page_scrapped_status: Mapped[ScrapeStatus] = mapped_column(
         ENUM(ScrapeStatus, name="scrape_status_enum"), nullable=False
     )
+
+    # RELATIONSHIPS
+    summaries = relationship("PageSummary", back_populates="scrapped_page")
