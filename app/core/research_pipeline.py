@@ -1,5 +1,6 @@
 """Пайплайн выполнения исследования."""
 
+import asyncio
 import json
 import random
 
@@ -9,14 +10,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.crud.model import get_model_by_id
 from app.crud.model_output import create_model_output
+from app.crud.research import update_research_stage
 from app.crud.research_epoch import (
     create_research_epoch,
+    get_research_epoch,
     update_research_epoch_keywords,
     update_research_epoch_search_links,
 )
+from app.crud.scrapped_page import upsert_scrapped_page
 from app.models.model_output import ModelResponseStatus
-from app.models.research import Research
+from app.models.research import RESEARCH_STAGES, Research
+from app.models.scrapped_page import ScrapeStatus
 from app.services.llm_client import LLMClient
+from app.services.page_cleaner import PageCleaner
 from app.services.prompts import (
     SearchResultScores,
     SearchResultToScore,
@@ -25,11 +31,13 @@ from app.services.prompts import (
     build_search_keywords_messages,
 )
 from app.services.searxng_client import SearXNGClient
+from app.services.web_scraper import WebScraper
 
 SEARCH_RESULTS_PER_KEYWORD = 20
 RELEVANCE_BATCH_SIZE = 10
 SEARCH_KEYWORDS_COUNT = 5
 RELEVANCE_MAX_RETRIES = 5
+SCRAPE_SEMAPHORE_LIMIT = 5
 
 
 class ResearchPipeline:
@@ -70,6 +78,8 @@ class ResearchPipeline:
         direction = await self._step_direction_brainstorm()
         keywords = await self._step_search_keywords(direction)
         await self._step_search(keywords, direction)
+        await self._step_scrape()
+        await update_research_stage(self._session, self._research, RESEARCH_STAGES["DONE"])
 
     # ------------------------------------------------------------------
     # Шаг 1: направление исследования
@@ -86,6 +96,7 @@ class ResearchPipeline:
             Ответ модели или пустую строку при ошибке / отсутствии модели.
         """
         research = self._research
+        await update_research_stage(self._session, research, RESEARCH_STAGES["DIRECTION"])
 
         if research.model_id_direction is None:
             logger.warning(
@@ -158,6 +169,7 @@ class ResearchPipeline:
             Список поисковых запросов или пустой список при ошибке.
         """
         research = self._research
+        await update_research_stage(self._session, research, RESEARCH_STAGES["KEYWORDS"])
 
         model = await get_model_by_id(self._session, research.model_id_search)
         if model is None:
@@ -232,6 +244,7 @@ class ResearchPipeline:
             direction: Результат шага direction_brainstorm (векторы исследования).
         """
         research = self._research
+        await update_research_stage(self._session, research, RESEARCH_STAGES["SEARCH"])
 
         if not keywords:
             logger.warning(f"_step_search: no keywords, skipping " f"(research_id={research.research_id})")
@@ -354,3 +367,57 @@ class ResearchPipeline:
                 epoch_id=0,
                 links=[{"title": title, "url": url, "total_score": total} for title, url, total in top10],
             )
+
+    # ------------------------------------------------------------------
+    # Шаг 4: парсинг страниц
+    # ------------------------------------------------------------------
+
+    async def _step_scrape(self) -> None:
+        """Скрапит топ-ссылки из эпохи и сохраняет результаты в scrapped_pages.
+
+        Читает research_result_search_links из эпохи 0, загружает каждую
+        страницу через WebScraper (до 5 одновременных запросов), очищает
+        контент через PageCleaner и сохраняет в таблицу scrapped_pages.
+        """
+        research = self._research
+        await update_research_stage(self._session, research, RESEARCH_STAGES["SCRAPE"])
+        epoch = await get_research_epoch(self._session, research.research_id, 0)
+        if epoch is None or not epoch.research_result_search_links:
+            logger.warning(f"_step_scrape: no links to scrape (research_id={research.research_id})")
+            return
+
+        links: list[dict] = epoch.research_result_search_links
+        logger.info(f"_step_scrape: scraping {len(links)} pages (research_id={research.research_id})")
+
+        scraper = WebScraper()
+        cleaner = PageCleaner()
+        semaphore = asyncio.Semaphore(SCRAPE_SEMAPHORE_LIMIT)
+
+        async def _scrape_one(link: dict) -> None:
+            url: str = link["url"]
+            async with semaphore:
+                raw_html = await scraper.fetch(url)
+
+            if raw_html is None:
+                await upsert_scrapped_page(
+                    session=self._session,
+                    url=url,
+                    raw_content="",
+                    clean_content=None,
+                    status=ScrapeStatus.ERROR,
+                )
+                logger.warning(f"_step_scrape: failed to fetch {url!r}")
+                return
+
+            clean_text = cleaner.clean(raw_html)
+            await upsert_scrapped_page(
+                session=self._session,
+                url=url,
+                raw_content=raw_html,
+                clean_content=clean_text,
+                status=ScrapeStatus.SUCCESS,
+            )
+            logger.debug(f"_step_scrape: saved {url!r} " f"(clean_len={len(clean_text) if clean_text else 0})")
+
+        await asyncio.gather(*[_scrape_one(link) for link in links])
+        logger.info(f"_step_scrape: done (research_id={research.research_id})")
