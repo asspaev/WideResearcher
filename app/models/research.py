@@ -12,6 +12,7 @@ RESEARCH_STAGES: dict[str, str] = {
     "KEYWORDS": "KEYWORDS",
     "SEARCH": "SEARCH",
     "SCRAPE": "SCRAPE",
+    "WRITE": "WRITE",
     "DONE": "DONE",
 }
 

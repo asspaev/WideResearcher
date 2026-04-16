@@ -60,6 +60,27 @@ async def update_research_epoch_search_links(
     await session.commit()
 
 
+async def update_research_epoch_body_finish(
+    session: AsyncSession,
+    research_id: int,
+    epoch_id: int,
+    body_finish: dict,
+) -> None:
+    """Сохраняет результат написания статьи в поле research_body_finish эпохи.
+
+    Args:
+        session: Активная сессия БД.
+        research_id: ID исследования.
+        epoch_id: ID эпохи.
+        body_finish: Результат исследования (JSONB).
+    """
+    epoch = await get_research_epoch(session, research_id, epoch_id)
+    if epoch is None:
+        return
+    epoch.research_body_finish = body_finish
+    await session.commit()
+
+
 async def create_research_epoch(
     session: AsyncSession,
     research_id: int,

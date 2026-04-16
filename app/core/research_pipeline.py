@@ -14,10 +14,11 @@ from app.crud.research import update_research_stage, update_research_status
 from app.crud.research_epoch import (
     create_research_epoch,
     get_research_epoch,
+    update_research_epoch_body_finish,
     update_research_epoch_keywords,
     update_research_epoch_search_links,
 )
-from app.crud.scrapped_page import upsert_scrapped_page
+from app.crud.scrapped_page import get_scrapped_page, upsert_scrapped_page
 from app.models.model_output import ModelResponseStatus
 from app.models.research import RESEARCH_STAGES, Research, ResearchStatus
 from app.models.scrapped_page import ScrapeStatus
@@ -29,9 +30,12 @@ from app.services.prompts import (
     build_direction_messages,
     build_relevance_messages,
     build_search_keywords_messages,
+    build_write_article_messages,
 )
 from app.services.searxng_client import SearXNGClient
 from app.services.web_scraper import WebScraper
+
+PAGE_CONTENT_MAX_CHARS = 8000
 
 SEARCH_RESULTS_PER_KEYWORD = 20
 RELEVANCE_BATCH_SIZE = 10
@@ -85,6 +89,7 @@ class ResearchPipeline:
         keywords = await self._step_search_keywords(direction)
         await self._step_search(keywords, direction)
         await self._step_scrape()
+        await self._step_write_article(direction)
         if self._has_error:
             await update_research_status(self._session, self._research, ResearchStatus.ERROR)
         else:
@@ -461,3 +466,135 @@ class ResearchPipeline:
 
         if not self._has_error:
             logger.info(f"_step_scrape: done (research_id={research_id})")
+
+    # ------------------------------------------------------------------
+    # Шаг 5: написание итоговой статьи
+    # ------------------------------------------------------------------
+
+    async def _step_write_article(self, direction: str) -> None:
+        """Пишет итоговую исследовательскую статью на основе собранных материалов.
+
+        Читает скрапнутые страницы для топ-ссылок эпохи 0, формирует контекст,
+        вызывает model_id_answer для генерации статьи, обрабатывает результат
+        через _format_as_html и сохраняет в research_body_finish эпохи 0.
+
+        Args:
+            direction: Результат шага direction_brainstorm (векторы исследования).
+        """
+        research = self._research
+        if self._has_error:
+            logger.debug(f"_step_write_article: skipping due to previous error (research_id={research.research_id})")
+            return
+
+        epoch = await get_research_epoch(self._session, research.research_id, 0)
+        if epoch is None:
+            logger.warning(f"_step_write_article: epoch 0 not found (research_id={research.research_id})")
+            return
+
+        await update_research_stage(self._session, research, RESEARCH_STAGES["WRITE"])
+
+        model = await get_model_by_id(self._session, research.model_id_answer)
+        if model is None:
+            logger.error(f"_step_write_article: answer model {research.model_id_answer} not found")
+            self._has_error = True
+            return
+
+        links: list[dict] = epoch.research_result_search_links or []
+        pages_content: list[dict] = []
+        for link in links:
+            url: str = link["url"]
+            page = await get_scrapped_page(self._session, url)
+            if page is not None and page.page_clean_content:
+                content = page.page_clean_content[:PAGE_CONTENT_MAX_CHARS]
+                pages_content.append({"url": url, "content": content})
+
+        query: str = (epoch.research_body_start or {}).get("query", research.research_name)
+        messages = build_write_article_messages(
+            query=query,
+            direction=direction or "",
+            pages_content=pages_content,
+        )
+
+        llm = LLMClient(
+            model_name=model.model_api_model,
+            base_url=model.model_base_url,
+            api_key=model.model_key_api,
+        )
+
+        status = ModelResponseStatus.COMPLETE
+        output_payload: dict = {}
+        html_result: str = ""
+
+        try:
+            raw = await llm.generate(messages)
+            html_result = self._format_as_html(raw)
+            output_payload = {"html": html_result}
+            logger.info(f"_step_write_article: done (research_id={research.research_id})")
+        except Exception as exc:
+            status = ModelResponseStatus.ERROR
+            output_payload = {"error": str(exc)}
+            self._has_error = True
+            logger.exception(f"_step_write_article: failed (research_id={research.research_id}): {exc}")
+
+        await create_model_output(
+            session=self._session,
+            model_id=research.model_id_answer,
+            research_id=research.research_id,
+            epoch_id=0,
+            step_type="write_article",
+            model_input={"messages": messages},
+            model_output=output_payload,
+            response_status=status,
+        )
+
+        if html_result:
+            await update_research_epoch_body_finish(
+                session=self._session,
+                research_id=research.research_id,
+                epoch_id=0,
+                body_finish={"html": html_result},
+            )
+
+    @staticmethod
+    def _format_as_html(text: str) -> str:
+        """Конвертирует Markdown-текст в HTML только с тегами h1/h2/h3/p/li.
+
+        Args:
+            text: Текст в Markdown-разметке от LLM.
+
+        Returns:
+            HTML-строка, содержащая только теги <h1>, <h2>, <h3>, <p>, <li>.
+        """
+        lines = text.splitlines()
+        parts: list[str] = []
+        paragraph_lines: list[str] = []
+
+        def flush_paragraph() -> None:
+            if paragraph_lines:
+                content = " ".join(paragraph_lines).strip()
+                if content:
+                    parts.append(f"<p>{content}</p>")
+                paragraph_lines.clear()
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                flush_paragraph()
+                continue
+            if stripped.startswith("### "):
+                flush_paragraph()
+                parts.append(f"<h3>{stripped[4:].strip()}</h3>")
+            elif stripped.startswith("## "):
+                flush_paragraph()
+                parts.append(f"<h2>{stripped[3:].strip()}</h2>")
+            elif stripped.startswith("# "):
+                flush_paragraph()
+                parts.append(f"<h1>{stripped[2:].strip()}</h1>")
+            elif stripped.startswith(("- ", "* ", "• ")):
+                flush_paragraph()
+                parts.append(f"<li>{stripped[2:].strip()}</li>")
+            else:
+                paragraph_lines.append(stripped)
+
+        flush_paragraph()
+        return "\n".join(parts)
