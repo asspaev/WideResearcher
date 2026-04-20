@@ -7,7 +7,8 @@ from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.model import get_model_by_id, get_models_by_user_id
-from app.models import Model
+from app.crud.research import get_research_by_id
+from app.models import Model, Research
 from app.schemas.user import UserCookie
 from app.services.data_fetch import research_settings_redis_key
 from app.utils.dependencies import get_user_cookie
@@ -122,6 +123,26 @@ async def get_edit_model(
         {
             "request": request,
             "model": model,
+        },
+    )
+
+
+@router.get("/researches/{research_id}/delete", name="delete_research")
+async def get_delete_research(
+    request: Request,
+    research_id: int,
+    session: AsyncSession = Depends(get_session),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
+    """Рендер всплывающего окна удаления исследования"""
+    research: Research | None = await get_research_by_id(session, research_id)
+
+    return templates.TemplateResponse(
+        "includes/popups/delete_research.html",
+        {
+            "request": request,
+            "research": research,
+            "research_name": research.research_name,
         },
     )
 

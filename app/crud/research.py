@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -160,3 +162,22 @@ async def get_next_planned_research_by_user_id(
         return None, None
 
     return row
+
+
+async def archive_research(
+    session: AsyncSession,
+    research_id: int,
+) -> bool:
+    """
+    Архивирует исследование по research_id (устанавливает archived_at = now()).
+    Возвращает True, если исследование найдено и архивировано, False если не найдено.
+    """
+    result = await session.execute(select(Research).where(Research.research_id == research_id))
+    research: Research | None = result.scalar_one_or_none()
+
+    if research is None:
+        return False
+
+    research.archived_at = datetime.now(timezone.utc)
+    await session.commit()
+    return True

@@ -8,10 +8,10 @@ from app.core.celery import celery_app
 from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
-from app.crud.research import create_research
+from app.crud.research import archive_research, create_research, get_research_by_id
 from app.models.research import Research
 from app.schemas.user import UserCookie
-from app.services.data_fetch import get_research_settings, research_settings_redis_key
+from app.services.data_fetch import get_research_settings, get_researches_cards, research_settings_redis_key
 from app.utils.dependencies import get_user_cookie
 
 router = APIRouter(prefix=get_settings().prefix.researches, tags=["researches"])
@@ -73,6 +73,35 @@ async def post_create_research(
     response = Response(status_code=204)
     response.headers["HX-Redirect"] = f"/researches/{research.research_id}"
     return response
+
+
+@router.delete("/{research_id}", name="api_delete_research")
+async def delete_research(
+    request: Request,
+    research_id: int,
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Архивирование исследования"""
+
+    # TODO Проверить, что исследование принадлежит пользователю
+
+    research = await get_research_by_id(session, research_id)
+    research_name: str = research.research_name
+
+    await archive_research(session, research_id)
+    logger.info(f"Research archived: {research_id} for user {user_cookie.user_id} {user_cookie.user_login}")
+
+    researches = await get_researches_cards(user_cookie, session)
+
+    return templates.TemplateResponse(
+        "includes/popups/research_deleted.html",
+        {
+            "request": request,
+            "researches": researches,
+            "research_name": research_name,
+        },
+    )
 
 
 @router.post("/settings", name="api_edit_new_research")

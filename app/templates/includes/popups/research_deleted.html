@@ -1,0 +1,14 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup new-model gap-24">
+        <div class="popup-header">
+            <h2>Исследование удалено!</h2>
+            <p>Исследование <span class="color-text-hint">{{ research_name }}</span> успешно удалено</p>
+        </div>
+        <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke">
+            Закрыть
+        </a>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>
+
+{% include 'includes/lists/list_researches.html' %}

@@ -65,7 +65,7 @@
                 {% set class = "color-white-default" %}
                 {% include 'includes/svg/timer.svg' %}
             </a>
-            <a href="" class="button border-icon">
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('delete_research', research_id=research.research_id) }}" hx-swap="none" class="button border-icon">
                 {% set width = 24 %}
                 {% set height = 24 %}
                 {% set class = "color-white-default" %}
