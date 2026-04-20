@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import asc, select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Research, ResearchSchedule
@@ -76,6 +76,8 @@ async def get_all_researches_with_schedules_by_user_id(
 
     if not include_archived:
         stmt = stmt.where(Research.archived_at.is_(None))
+
+    stmt = stmt.order_by(desc(Research.meta_updated_at))
 
     result = await session.execute(stmt)
     return result.all()

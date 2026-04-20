@@ -1,4 +1,4 @@
-from sqlalchemy import exists, select
+from sqlalchemy import desc, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Model
@@ -19,6 +19,8 @@ async def get_models_by_user_id(
 
     if not include_archived:
         stmt = stmt.where(Model.archived_at.is_(None))
+
+    stmt = stmt.order_by(desc(Model.meta_updated_at))
 
     result = await session.execute(stmt)
     return result.scalars().all()
