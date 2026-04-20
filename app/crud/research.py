@@ -56,10 +56,14 @@ async def create_research(
 async def get_all_researches_with_schedules_by_user_id(
     session: AsyncSession,
     user_id: int,
+    include_archived: bool = False,
 ) -> list[tuple[Research, ResearchSchedule | None]]:
     """
     Возвращает все исследования пользователя по user_id вместе с их расписаниями.
     Если расписаний нет, то второй элемент кортежа будет None.
+
+    Args:
+        include_archived: Если False (по умолчанию), исключает архивированные исследования.
     """
     # LEFT OUTER JOIN
     stmt = (
@@ -67,6 +71,9 @@ async def get_all_researches_with_schedules_by_user_id(
         .join(ResearchSchedule, Research.research_id == ResearchSchedule.research_id, isouter=True)
         .where(Research.user_id == user_id)
     )
+
+    if not include_archived:
+        stmt = stmt.where(Research.archived_at.is_(None))
 
     result = await session.execute(stmt)
     return result.all()
@@ -93,8 +100,13 @@ async def update_research_status(
 async def get_research_by_id(
     session: AsyncSession,
     research_id: int,
+    include_archived: bool = False,
 ) -> Research | None:
     stmt = select(Research).where(Research.research_id == research_id)
+
+    if not include_archived:
+        stmt = stmt.where(Research.archived_at.is_(None))
+
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -103,8 +115,13 @@ async def get_research_by_id_and_user_id(
     session: AsyncSession,
     research_id: int,
     user_id: int,
+    include_archived: bool = False,
 ) -> Research | None:
     stmt = select(Research).where(Research.research_id == research_id, Research.user_id == user_id)
+
+    if not include_archived:
+        stmt = stmt.where(Research.archived_at.is_(None))
+
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -112,10 +129,14 @@ async def get_research_by_id_and_user_id(
 async def get_next_planned_research_by_user_id(
     session: AsyncSession,
     user_id: int,
+    include_archived: bool = False,
 ) -> tuple[Research | None, ResearchSchedule | None]:
     """
     Возвращает ближайшее исследование пользователя со статусом PLANNED по scheduled_at.
     Если нет такого исследования, возвращает (None, None).
+
+    Args:
+        include_archived: Если False (по умолчанию), исключает архивированные исследования.
     """
     stmt = (
         select(Research, ResearchSchedule)
@@ -128,6 +149,9 @@ async def get_next_planned_research_by_user_id(
         .order_by(asc(ResearchSchedule.scheduled_at))
         .limit(1)  # берём только ближайшее
     )
+
+    if not include_archived:
+        stmt = stmt.where(Research.archived_at.is_(None))
 
     result = await session.execute(stmt)
     row = result.first()

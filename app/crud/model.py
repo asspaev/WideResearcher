@@ -7,11 +7,18 @@ from app.models import Model
 async def get_models_by_user_id(
     session: AsyncSession,
     user_id: int,
+    include_archived: bool = False,
 ) -> list[Model]:
     """
     Возвращает все модели пользователя по user_id.
+
+    Args:
+        include_archived: Если False (по умолчанию), исключает архивированные модели.
     """
     stmt = select(Model).where(Model.user_id == user_id)
+
+    if not include_archived:
+        stmt = stmt.where(Model.archived_at.is_(None))
 
     result = await session.execute(stmt)
     return result.scalars().all()
@@ -21,17 +28,24 @@ async def model_exists_by_user_and_name(
     session: AsyncSession,
     user_id: int,
     model_name: str,
+    include_archived: bool = False,
 ) -> bool:
     """
     Проверяет, существует ли модель с указанным model_name у пользователя.
     Возвращает True, если запись есть, иначе False.
+
+    Args:
+        include_archived: Если False (по умолчанию), исключает архивированные модели.
     """
-    stmt = select(
-        exists().where(
-            Model.user_id == user_id,
-            Model.model_name == model_name,
-        )
-    )
+    conditions = [
+        Model.user_id == user_id,
+        Model.model_name == model_name,
+    ]
+
+    if not include_archived:
+        conditions.append(Model.archived_at.is_(None))
+
+    stmt = select(exists().where(*conditions))
 
     result = await session.execute(stmt)
     return result.scalar()
@@ -65,11 +79,18 @@ async def create_model(
 async def get_model_by_id(
     session: AsyncSession,
     model_id: int,
+    include_archived: bool = False,
 ) -> Model | None:
     """
     Возвращает модель по model_id.
+
+    Args:
+        include_archived: Если False (по умолчанию), исключает архивированные модели.
     """
     stmt = select(Model).where(Model.model_id == model_id)
+
+    if not include_archived:
+        stmt = stmt.where(Model.archived_at.is_(None))
 
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
