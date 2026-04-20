@@ -9,7 +9,6 @@ async def create_model_output(
     session: AsyncSession,
     model_id: int,
     research_id: int,
-    epoch_id: int,
     step_type: str,
     model_input: dict,
     model_output: dict,
@@ -18,7 +17,6 @@ async def create_model_output(
     record = ModelOutput(
         model_id=model_id,
         research_id=research_id,
-        epoch_id=epoch_id,
         response_status=response_status,
         step_type=step_type,
         model_input=model_input,

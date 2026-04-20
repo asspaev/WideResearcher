@@ -4,7 +4,6 @@ __all__ = [
     "ModelOutput",
     "PageSummary",
     "Research",
-    "ResearchEpoch",
     "ResearchSchedule",
     "ScrappedPage",
     "User",
@@ -16,7 +15,6 @@ from .model import Model
 from .model_output import ModelOutput
 from .page_summary import PageSummary
 from .research import Research
-from .research_epoch import ResearchEpoch
 from .research_schedule import ResearchSchedule
 from .scrapped_page import ScrappedPage
 from .user import User

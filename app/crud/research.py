@@ -31,7 +31,6 @@ async def create_research(
     user_id: int,
     research_name: str,
     research_version_name: str,
-    settings_epochs_count: int,
     model_id_answer: int,
     model_id_search: int,
     model_id_direction: int | None = None,
@@ -43,7 +42,6 @@ async def create_research(
         research_stage=RESEARCH_STAGES["LAUNCH"],
         research_name=research_name,
         research_version_name=research_version_name,
-        settings_epochs_count=settings_epochs_count,
         model_id_answer=model_id_answer,
         model_id_search=model_id_search,
         model_id_direction=model_id_direction,
@@ -201,3 +199,57 @@ async def archive_research(
     research.archived_at = datetime.now(timezone.utc)
     await session.commit()
     return True
+
+
+async def update_research_body_start(
+    session: AsyncSession,
+    research: Research,
+    body_start: dict,
+) -> None:
+    research.research_body_start = body_start
+    await session.commit()
+
+
+async def update_research_direction_content(
+    session: AsyncSession,
+    research: Research,
+    direction_content: str | None,
+) -> None:
+    research.research_direction_content = direction_content
+    await session.commit()
+
+
+async def update_research_search_keywords(
+    session: AsyncSession,
+    research: Research,
+    keywords: list[str],
+) -> None:
+    research.research_search_keywords = keywords
+    await session.commit()
+
+
+async def update_research_search_links(
+    session: AsyncSession,
+    research: Research,
+    links: list[dict],
+) -> None:
+    research.research_result_search_links = links
+    await session.commit()
+
+
+async def update_research_body_finish(
+    session: AsyncSession,
+    research: Research,
+    body_finish: dict,
+) -> None:
+    research.research_body_finish = body_finish
+    await session.commit()
+
+
+async def update_research_duration(
+    session: AsyncSession,
+    research: Research,
+    duration_seconds: int,
+) -> None:
+    research.research_duration_seconds = duration_seconds
+    await session.commit()

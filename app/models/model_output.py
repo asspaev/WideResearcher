@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, Text
+from sqlalchemy import BigInteger, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,7 +20,6 @@ class ModelOutput(Base):
     response_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     model_id: Mapped[int] = mapped_column(ForeignKey("models.model_id"), nullable=False)
     research_id: Mapped[int] = mapped_column(ForeignKey("researches.research_id"), nullable=False)
-    epoch_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # OUTPUT-параметры
     response_status: Mapped[ModelResponseStatus] = mapped_column(

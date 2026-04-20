@@ -11,16 +11,14 @@ async def upsert_page_summary(
     session: AsyncSession,
     page_url: str,
     research_id: int,
-    epoch_id: int,
     page_summary: str,
 ) -> None:
-    """Создаёт или обновляет саммари страницы для конкретной эпохи.
+    """Создаёт или обновляет саммари страницы для конкретного исследования.
 
     Args:
         session: Активная сессия БД.
         page_url: URL страницы.
         research_id: Идентификатор исследования.
-        epoch_id: Идентификатор эпохи.
         page_summary: Текст саммари.
     """
     stmt = (
@@ -28,11 +26,10 @@ async def upsert_page_summary(
         .values(
             page_url=page_url,
             research_id=research_id,
-            epoch_id=epoch_id,
             page_summary=page_summary,
         )
         .on_conflict_do_update(
-            index_elements=["page_url", "research_id", "epoch_id"],
+            index_elements=["page_url", "research_id"],
             set_={"page_summary": page_summary},
         )
     )
@@ -40,25 +37,18 @@ async def upsert_page_summary(
     await session.commit()
 
 
-async def get_page_summaries_by_epoch(
+async def get_page_summaries_by_research(
     session: AsyncSession,
     research_id: int,
-    epoch_id: int,
 ) -> list[PageSummary]:
-    """Возвращает все саммари страниц для указанной эпохи.
+    """Возвращает все саммари страниц для указанного исследования.
 
     Args:
         session: Активная сессия БД.
         research_id: Идентификатор исследования.
-        epoch_id: Идентификатор эпохи.
 
     Returns:
         Список объектов PageSummary.
     """
-    result = await session.execute(
-        select(PageSummary).where(
-            PageSummary.research_id == research_id,
-            PageSummary.epoch_id == epoch_id,
-        )
-    )
+    result = await session.execute(select(PageSummary).where(PageSummary.research_id == research_id))
     return list(result.scalars().all())

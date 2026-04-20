@@ -46,12 +46,16 @@ class Research(Base):
     research_stage: Mapped[str] = mapped_column(Text, nullable=False)
     research_name: Mapped[str] = mapped_column(Text, nullable=False)
     research_version_name: Mapped[str] = mapped_column(Text, nullable=False)
-    research_body: Mapped[dict | None] = mapped_column(JSONB)
+    research_body_start: Mapped[dict | None] = mapped_column(JSONB)
+    research_body_finish: Mapped[dict | None] = mapped_column(JSONB)
+    research_duration_seconds: Mapped[int | None] = mapped_column(Integer)
+    research_direction_content: Mapped[str | None] = mapped_column(Text)
+    research_search_keywords: Mapped[dict | None] = mapped_column(JSONB)
+    research_result_search_links: Mapped[dict | None] = mapped_column(JSONB)
 
     # SETTINGS-параметры
     settings_search_areas: Mapped[dict | None] = mapped_column(JSONB)
     settings_exclude_search_areas: Mapped[dict | None] = mapped_column(JSONB)
-    settings_epochs_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="5")
 
     # META-параметры
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -64,7 +68,6 @@ class Research(Base):
     # RELATIONSHIPS
     user = relationship("User", back_populates="researches")
     parent = relationship("Research", remote_side=[research_id])
-    epochs = relationship("ResearchEpoch", back_populates="research")
     schedules = relationship("ResearchSchedule", back_populates="research")
     outputs = relationship("ModelOutput", back_populates="research")
-    page_summaries = relationship("PageSummary", back_populates="research", overlaps="epoch")
+    page_summaries = relationship("PageSummary", back_populates="research")
