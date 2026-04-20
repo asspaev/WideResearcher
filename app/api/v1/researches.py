@@ -8,7 +8,7 @@ from app.core.celery import celery_app
 from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
-from app.crud.research import archive_research, create_research, get_research_by_id
+from app.crud.research import archive_research, create_research, get_research_by_id, update_research_name
 from app.models.research import Research
 from app.schemas.user import UserCookie
 from app.services.data_fetch import get_research_settings, get_researches_cards, research_settings_redis_key
@@ -73,6 +73,34 @@ async def post_create_research(
     response = Response(status_code=204)
     response.headers["HX-Redirect"] = f"/researches/{research.research_id}"
     return response
+
+
+@router.put("/{research_id}", name="api_update_research")
+async def put_update_research(
+    request: Request,
+    research_id: int,
+    research_name: str = Form(...),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Обновление названия исследования"""
+    research = await get_research_by_id(session, research_id)
+    old_name: str = research.research_name
+
+    await update_research_name(session, research_id, research_name)
+    logger.info(f"Research renamed: {research_id} for user {user_cookie.user_id} {user_cookie.user_login}")
+
+    researches = await get_researches_cards(user_cookie, session)
+
+    return templates.TemplateResponse(
+        "includes/popups/research_edited.html",
+        {
+            "request": request,
+            "researches": researches,
+            "old_name": old_name,
+            "new_name": research_name,
+        },
+    )
 
 
 @router.delete("/{research_id}", name="api_delete_research")

@@ -166,6 +166,24 @@ async def get_next_planned_research_by_user_id(
     return row
 
 
+async def update_research_name(
+    session: AsyncSession,
+    research_id: int,
+    research_name: str,
+) -> Research | None:
+    """Обновляет название исследования по research_id."""
+    result = await session.execute(select(Research).where(Research.research_id == research_id))
+    research: Research | None = result.scalar_one_or_none()
+
+    if research is None:
+        return None
+
+    research.research_name = research_name
+    await session.commit()
+    await session.refresh(research)
+    return research
+
+
 async def archive_research(
     session: AsyncSession,
     research_id: int,

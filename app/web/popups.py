@@ -127,6 +127,25 @@ async def get_edit_model(
     )
 
 
+@router.get("/researches/{research_id}/edit", name="edit_research")
+async def get_edit_research(
+    request: Request,
+    research_id: int,
+    session: AsyncSession = Depends(get_session),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
+    """Рендер всплывающего окна редактирования названия исследования"""
+    research: Research | None = await get_research_by_id(session, research_id)
+
+    return templates.TemplateResponse(
+        "includes/popups/edit_research.html",
+        {
+            "request": request,
+            "research": research,
+        },
+    )
+
+
 @router.get("/researches/{research_id}/delete", name="delete_research")
 async def get_delete_research(
     request: Request,

@@ -1,0 +1,28 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup new-model gap-24">
+        <div class="popup-header">
+            <h2>Редактирование исследования</h2>
+            <p>Изменить название исследования <span class="color-text-hint">{{ research.research_name }}</span></p>
+        </div>
+        <form class="column gap-24" hx-put="{{ url_for('api_update_research', research_id=research.research_id) }}"
+            hx-trigger="submit" hx-swap="none" autocomplete="off">
+            <div class="column gap-12">
+                <div class="field">
+                    <input name="research_name" type="text" placeholder="Название исследования"
+                        value="{{ research.research_name }}">
+                    <label>Название исследования</label>
+                </div>
+            </div>
+            <div class="column gap-12">
+                <button type="submit" class="primary solid">
+                    Сохранить
+                </button>
+                <p id="result_form" class="result wrong hidden"></p>
+                <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" class="button text-hint stroke">
+                    Отмена
+                </a>
+            </div>
+        </form>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>
