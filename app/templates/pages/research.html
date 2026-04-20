@@ -10,8 +10,8 @@
 
         <div class="title-research">
             <div class="name-research">
-                <h1>Исследование: {{ research.research_name }}</h1>
-                <div class="icon">
+                <h1 id="research-title">Исследование: {{ research.research_name }}</h1>
+                <div class="icon" hx-get="{{ url_for('edit_research', research_id=research.research_id) }}" hx-swap="none" hx-trigger="click" style="cursor:pointer">
                     {% set width = 20 %}
                     {% set height = 20 %}
                     {% set class = "color-text-body" %}

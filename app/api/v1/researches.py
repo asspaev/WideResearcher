@@ -99,6 +99,7 @@ async def put_update_research(
             "researches": researches,
             "old_name": old_name,
             "new_name": research_name,
+            "research_id": research_id,
         },
     )
 

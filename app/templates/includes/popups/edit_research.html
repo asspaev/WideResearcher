@@ -5,7 +5,8 @@
             <p>Изменить название исследования <span class="color-text-hint">{{ research.research_name }}</span></p>
         </div>
         <form class="column gap-24" hx-put="{{ url_for('api_update_research', research_id=research.research_id) }}"
-            hx-trigger="submit" hx-swap="none" autocomplete="off">
+            hx-trigger="submit" hx-swap="none" autocomplete="off"
+            hx-on::htmx:after-request="var t=document.getElementById('research-title');if(t&&event.detail.successful)t.textContent='Исследование: '+this.elements['research_name'].value">
             <div class="column gap-12">
                 <div class="field">
                     <input name="research_name" type="text" placeholder="Название исследования"

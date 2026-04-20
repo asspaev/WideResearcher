@@ -12,3 +12,7 @@
 </div>
 
 {% include 'includes/lists/list_researches.html' %}
+
+{% if research_id %}
+<h1 hx-swap-oob="true" id="research-title">Исследование: {{ new_name }}</h1>
+{% endif %}
