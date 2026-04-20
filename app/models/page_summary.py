@@ -26,5 +26,5 @@ class PageSummary(Base):
 
     # RELATIONSHIPS
     scrapped_page = relationship("ScrappedPage", back_populates="summaries")
-    research = relationship("Research", back_populates="page_summaries")
-    epoch = relationship("ResearchEpoch", back_populates="page_summaries")
+    research = relationship("Research", back_populates="page_summaries", overlaps="epoch")
+    epoch = relationship("ResearchEpoch", back_populates="page_summaries", overlaps="research")

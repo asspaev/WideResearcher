@@ -66,4 +66,4 @@ class Research(Base):
     epochs = relationship("ResearchEpoch", back_populates="research")
     schedules = relationship("ResearchSchedule", back_populates="research")
     outputs = relationship("ModelOutput", back_populates="research")
-    page_summaries = relationship("PageSummary", back_populates="research")
+    page_summaries = relationship("PageSummary", back_populates="research", overlaps="epoch")
