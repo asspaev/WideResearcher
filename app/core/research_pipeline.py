@@ -1,9 +1,12 @@
-"""Пайплайн выполнения исследования."""
+"""Research execution pipeline."""
 
 import asyncio
+import functools
+import inspect
 import json
 import random
 import re
+import time
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,18 +50,82 @@ RELEVANCE_MAX_RETRIES = 5
 SCRAPE_SEMAPHORE_LIMIT = 5
 
 
-class ResearchPipeline:
-    """Пайплайн выполнения одного исследования.
+def _fmt_param(value: object) -> str:
+    """Returns a compact string representation of a parameter value for logging."""
+    if isinstance(value, list):
+        return f"[{len(value)} items]"
+    if isinstance(value, str) and len(value) > 80:
+        return repr(value[:80]) + "..."
+    return repr(value)
 
-    Инкапсулирует все шаги: определение направления, генерацию поисковых
-    запросов, поиск через SearXNG и оценку релевантности результатов.
+
+def pipeline_step(step_number: int, step_name: str):
+    """Decorator that logs START/DONE/FAILED with timing and input parameters.
+
+    Wraps an async pipeline step method. Logs:
+    - START: step number, name, user_id, research_id, epoch_id, all parameters.
+    - DONE: step number, name, research_id, elapsed time.
+    - FAILED: step number, name, research_id, elapsed time (then re-raises).
 
     Args:
-        session: Активная сессия БД.
-        research: ORM-объект исследования.
-        n_results: Количество результатов поиска на каждый keyword.
-        relevance_batch_size: Размер батча при оценке релевантности.
-        n_keywords: Количество поисковых запросов.
+        step_number: Sequential step number shown in logs.
+        step_name: Short uppercase label for the step (e.g. "DIRECTION").
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(self: "ResearchPipeline", *args, **kwargs):
+            research = self._research
+
+            sig = inspect.signature(func)
+            bound = sig.bind(self, *args, **kwargs)
+            bound.apply_defaults()
+            # skip 'self' when building params string
+            params_str = " | ".join(f"{name}={_fmt_param(val)}" for name, val in list(bound.arguments.items())[1:])
+
+            logger.info(
+                f"[STEP {step_number} | {step_name}] START"
+                f" | user_id={research.user_id}"
+                f" | research_id={research.research_id}"
+                f" | epoch_id=0" + (f" | {params_str}" if params_str else "")
+            )
+            t0 = time.monotonic()
+            try:
+                result = await func(self, *args, **kwargs)
+            except Exception:
+                elapsed = time.monotonic() - t0
+                logger.info(
+                    f"[STEP {step_number} | {step_name}] FAILED"
+                    f" | research_id={research.research_id}"
+                    f" | elapsed={elapsed:.2f}s"
+                )
+                raise
+            elapsed = time.monotonic() - t0
+            logger.info(
+                f"[STEP {step_number} | {step_name}] DONE"
+                f" | research_id={research.research_id}"
+                f" | elapsed={elapsed:.2f}s"
+            )
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+class ResearchPipeline:
+    """Pipeline for executing a single research.
+
+    Encapsulates all steps: direction brainstorm, search keyword generation,
+    SearXNG search with relevance scoring, page scraping, summarization,
+    and article writing.
+
+    Args:
+        session: Active database session.
+        research: Research ORM object.
+        n_results: Number of search results per keyword.
+        relevance_batch_size: Batch size for relevance scoring.
+        n_keywords: Number of search queries to generate.
     """
 
     def __init__(
@@ -78,10 +145,9 @@ class ResearchPipeline:
         self._has_error = False
 
     async def run(self) -> None:
-        """Запускает полный пайплайн исследования.
+        """Runs the full research pipeline.
 
-        Шаги выполняются последовательно; результат каждого шага передаётся
-        в следующий.
+        Steps execute sequentially; each step's result is passed to the next.
         """
         try:
             direction = await self._step_direction_brainstorm()
@@ -101,23 +167,21 @@ class ResearchPipeline:
             await update_research_status(self._session, self._research, ResearchStatus.COMPLETE)
 
     # ------------------------------------------------------------------
-    # Шаг 1: направление исследования
+    # Step 1: research direction
     # ------------------------------------------------------------------
 
+    @pipeline_step(1, "DIRECTION")
     async def _step_direction_brainstorm(self) -> str:
-        """Определяет направление исследования через LLM.
+        """Determines the research direction via LLM.
 
-        Выполняет один вызов model_id_direction и сохраняет результат
-        в model_outputs (epoch_id=0, step_type="direction_brainstorm"),
-        затем создаёт запись ResearchEpoch.
+        Makes a single call to model_id_direction and saves the result
+        to model_outputs (epoch_id=0, step_type="direction_brainstorm"),
+        then creates a ResearchEpoch record.
 
         Returns:
-            Ответ модели или пустую строку при ошибке / отсутствии модели.
+            Model response or empty string on error / missing model.
         """
         research = self._research
-        logger.info(
-            f"[ШАГ 1 | DIRECTION] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
-        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["DIRECTION"])
 
         if research.model_id_direction is None:
@@ -180,34 +244,33 @@ class ResearchPipeline:
         return direction_content or ""
 
     # ------------------------------------------------------------------
-    # Шаг 2: генерация поисковых запросов
+    # Step 2: search keyword generation
     # ------------------------------------------------------------------
 
+    @pipeline_step(2, "KEYWORDS")
     async def _step_search_keywords(self, direction: str) -> list[str]:
-        """Генерирует поисковые запросы для SearXNG.
+        """Generates search queries for SearXNG.
 
-        Вызывает model_id_search с темой и направлением исследования,
-        парсит JSON-массив строк и сохраняет в research_search_keywords эпохи.
+        Calls model_id_search with the research topic and direction,
+        parses a JSON array of strings, and saves to the epoch's
+        research_search_keywords field.
 
         Args:
-            direction: Результат шага direction_brainstorm.
+            direction: Result of the direction_brainstorm step.
 
         Returns:
-            Список поисковых запросов или пустой список при ошибке.
+            List of search queries or empty list on error.
         """
         research = self._research
         if self._has_error:
             logger.debug(f"_step_search_keywords: skipping due to previous error (research_id={research.research_id})")
             return []
 
-        logger.info(
-            f"[ШАГ 2 | KEYWORDS] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
-        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["KEYWORDS"])
 
         model = await get_model_by_id(self._session, research.model_id_search)
         if model is None:
-            logger.error(f"_step_search_keywords: search model " f"{research.model_id_search} not found")
+            logger.error(f"_step_search_keywords: search model {research.model_id_search} not found")
             return []
 
         llm = LLMClient(
@@ -239,7 +302,7 @@ class ResearchPipeline:
             status = ModelResponseStatus.ERROR
             output_payload = {"error": str(exc)}
             self._has_error = True
-            logger.error(f"_step_search_keywords: failed " f"(research_id={research.research_id}): {exc}")
+            logger.error(f"_step_search_keywords: failed (research_id={research.research_id}): {exc}")
 
         await create_model_output(
             session=self._session,
@@ -263,20 +326,21 @@ class ResearchPipeline:
         return keywords
 
     # ------------------------------------------------------------------
-    # Шаг 3: поиск + оценка релевантности
+    # Step 3: search + relevance scoring
     # ------------------------------------------------------------------
 
+    @pipeline_step(3, "SEARCH")
     async def _step_search(self, keywords: list[str], direction: str) -> None:
-        """Выполняет поиск через SearXNG и оценивает релевантность результатов.
+        """Searches via SearXNG and scores result relevance.
 
-        Для каждого ключевого слова выполняет поиск, затем отправляет результаты
-        батчами по self._relevance_batch_size в model_id_search для оценки
-        релевантности по шкале 0.0–1.0 (10 критериев). Сохраняет топ-10 ссылок
-        в эпохе.
+        For each keyword performs a search, then sends results in batches
+        of self._relevance_batch_size to model_id_search for relevance
+        scoring on a 0.0–1.0 scale (10 criteria). Saves the top-10 links
+        to the epoch.
 
         Args:
-            keywords: Список поисковых запросов из шага search_keywords.
-            direction: Результат шага direction_brainstorm (векторы исследования).
+            keywords: Search queries from the search_keywords step.
+            direction: Result of the direction_brainstorm step.
         """
         research = self._research
         if self._has_error:
@@ -287,9 +351,6 @@ class ResearchPipeline:
             logger.warning(f"_step_search: no keywords, skipping (research_id={research.research_id})")
             return
 
-        logger.info(
-            f"[ШАГ 3 | SEARCH] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
-        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["SEARCH"])
 
         settings = get_settings()
@@ -309,7 +370,7 @@ class ResearchPipeline:
                 api_key=model.model_key_api,
             )
 
-        # (title, url, total_score) по всем keyword'ам
+        # (title, url, total_score) across all keywords
         scored_documents: list[tuple[str, str, float]] = []
 
         for keyword in keywords:
@@ -320,7 +381,7 @@ class ResearchPipeline:
                     f"(research_id={research.research_id})"
                 )
                 for i, r in enumerate(results, 1):
-                    logger.debug(f"  [{i}] title={r.title!r} url={r.url!r} " f"description={r.description!r}")
+                    logger.debug(f"  [{i}] title={r.title!r} url={r.url!r} description={r.description!r}")
             except Exception as exc:
                 logger.error(
                     f"_step_search: failed for keyword={keyword!r} " f"(research_id={research.research_id}): {exc}"
@@ -399,7 +460,7 @@ class ResearchPipeline:
 
         if scored_documents:
             top10 = sorted(scored_documents, key=lambda x: x[2], reverse=True)[:10]
-            logger.debug(f"_step_search: top-10 documents by total score " f"(research_id={research.research_id})")
+            logger.debug(f"_step_search: top-10 documents by total score (research_id={research.research_id})")
             for rank, (title, url, total) in enumerate(top10, 1):
                 logger.debug(f"  #{rank} total={total:.1f} title={title!r} url={url!r}")
 
@@ -411,15 +472,16 @@ class ResearchPipeline:
             )
 
     # ------------------------------------------------------------------
-    # Шаг 4: парсинг страниц
+    # Step 4: page scraping
     # ------------------------------------------------------------------
 
+    @pipeline_step(4, "SCRAPE")
     async def _step_scrape(self) -> None:
-        """Скрапит топ-ссылки из эпохи и сохраняет результаты в scrapped_pages.
+        """Scrapes top links from the epoch and saves results to scrapped_pages.
 
-        Читает research_result_search_links из эпохи 0, загружает каждую
-        страницу через WebScraper (до 5 одновременных запросов), очищает
-        контент через PageCleaner и сохраняет в таблицу scrapped_pages.
+        Reads research_result_search_links from epoch 0, fetches each page
+        via WebScraper (up to 5 concurrent requests), cleans content via
+        PageCleaner, and saves to the scrapped_pages table.
         """
         research = self._research
         if self._has_error:
@@ -431,13 +493,10 @@ class ResearchPipeline:
             logger.warning(f"_step_scrape: no links to scrape (research_id={research.research_id})")
             return
 
-        logger.info(
-            f"[ШАГ 4 | SCRAPE] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
-        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["SCRAPE"])
 
         links: list[dict] = epoch.research_result_search_links
-        research_id = research.research_id  # кэшируем до цикла — сессия может сломаться
+        research_id = research.research_id  # cache before loop — session may break
         logger.info(f"_step_scrape: scraping {len(links)} pages (research_id={research_id})")
 
         _BINARY_EXTENSIONS = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".tar", ".gz", ".rar")
@@ -484,17 +543,19 @@ class ResearchPipeline:
             logger.info(f"_step_scrape: done (research_id={research_id})")
 
     # ------------------------------------------------------------------
-    # Шаг 5: формирование саммари страниц
+    # Step 5: page summarization
     # ------------------------------------------------------------------
 
+    @pipeline_step(5, "SUMMARIZE")
     async def _step_summarize_pages(self, direction: str) -> None:
-        """Формирует саммари для каждой скрапнутой страницы текущей эпохи.
+        """Generates a summary for each scraped page in the current epoch.
 
-        Читает топ-ссылки из эпохи 0, для каждой страницы с контентом вызывает
-        model_id_answer для генерации саммари и сохраняет результат в page_summaries.
+        Reads top links from epoch 0, calls model_id_answer for each page
+        with content to generate a summary, and saves the result to
+        page_summaries.
 
         Args:
-            direction: Результат шага direction_brainstorm (векторы исследования).
+            direction: Result of the direction_brainstorm step.
         """
         research = self._research
         if self._has_error:
@@ -506,9 +567,6 @@ class ResearchPipeline:
             logger.warning(f"_step_summarize_pages: no links found (research_id={research.research_id})")
             return
 
-        logger.info(
-            f"[ШАГ 5 | SUMMARIZE] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
-        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["SUMMARIZE"])
 
         model = await get_model_by_id(self._session, research.model_id_answer)
@@ -561,18 +619,19 @@ class ResearchPipeline:
         logger.info(f"_step_summarize_pages: done (research_id={research.research_id})")
 
     # ------------------------------------------------------------------
-    # Шаг 6: написание итоговой статьи
+    # Step 6: article writing
     # ------------------------------------------------------------------
 
+    @pipeline_step(6, "WRITE")
     async def _step_write_article(self, direction: str) -> None:
-        """Пишет итоговую исследовательскую статью на основе саммари источников.
+        """Writes the final research article based on page summaries.
 
-        Читает page_summaries для эпохи 0, формирует контекст,
-        вызывает model_id_answer для генерации статьи, обрабатывает результат
-        через _format_as_segments и сохраняет в research_body_finish эпохи 0.
+        Reads page_summaries for epoch 0, builds context, calls
+        model_id_answer to generate the article, processes the result
+        via _format_as_segments, and saves to research_body_finish of epoch 0.
 
         Args:
-            direction: Результат шага direction_brainstorm (векторы исследования).
+            direction: Result of the direction_brainstorm step.
         """
         research = self._research
         if self._has_error:
@@ -584,9 +643,6 @@ class ResearchPipeline:
             logger.warning(f"_step_write_article: epoch 0 not found (research_id={research.research_id})")
             return
 
-        logger.info(
-            f"[ШАГ 6 | WRITE] START | user_id={research.user_id} " f"research_id={research.research_id} epoch_id=0"
-        )
         await update_research_stage(self._session, research, RESEARCH_STAGES["WRITE"])
 
         model = await get_model_by_id(self._session, research.model_id_answer)
@@ -647,13 +703,13 @@ class ResearchPipeline:
 
     @staticmethod
     def _apply_inline_markdown(text: str) -> str:
-        """Заменяет inline Markdown-разметку на HTML-теги <b> и <i>.
+        """Replaces inline Markdown markup with <b> and <i> HTML tags.
 
         Args:
-            text: Строка с возможной inline-разметкой.
+            text: String with possible inline markup.
 
         Returns:
-            Строка с заменёнными тегами <b> и <i>.
+            String with <b> and <i> tags substituted.
         """
         text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
         text = re.sub(r"\*(.+?)\*", r"<i>\1</i>", text)
@@ -662,15 +718,15 @@ class ResearchPipeline:
 
     @staticmethod
     def _format_as_segments(text: str) -> list[dict]:
-        """Конвертирует Markdown-текст в список сегментов с типом и контентом.
+        """Converts Markdown text into a list of typed content segments.
 
         Args:
-            text: Текст в Markdown-разметке от LLM.
+            text: Markdown-formatted text from the LLM.
 
         Returns:
-            Список словарей с ключами type, content, is_like, is_dislike, comment.
-            Поддерживаемые типы: h1, h2, h3, p, li.
-            Inline-разметка **bold** и *italic*/_italic_ конвертируется в <b>/<i>.
+            List of dicts with keys: type, content, is_like, is_dislike, comment.
+            Supported types: h1, h2, h3, p, li.
+            Inline markup **bold** and *italic*/_italic_ is converted to <b>/<i>.
         """
         apply = ResearchPipeline._apply_inline_markdown
 
