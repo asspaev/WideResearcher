@@ -1,6 +1,7 @@
 import enum
+from datetime import datetime
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, Text
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -50,6 +51,9 @@ class Research(Base):
     settings_search_areas: Mapped[dict | None] = mapped_column(JSONB)
     settings_exclude_search_areas: Mapped[dict | None] = mapped_column(JSONB)
     settings_epochs_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="5")
+
+    # META-параметры
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # MODEL-параметры
     model_id_answer: Mapped[int] = mapped_column(BigInteger, nullable=False)
