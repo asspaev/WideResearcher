@@ -135,15 +135,17 @@ async def delete_model(
     model_id: int,
 ) -> bool:
     """
-    Удаляет модель по model_id.
-    Возвращает True, если модель была удалена, False если не найдена.
+    Архивирует модель по model_id (устанавливает archived_at = now()).
+    Возвращает True, если модель найдена и архивирована, False если не найдена.
     """
+    from datetime import datetime, timezone
+
     result = await session.execute(select(Model).where(Model.model_id == model_id))
     model: Model | None = result.scalar_one_or_none()
 
     if model is None:
         return False
 
-    await session.delete(model)
+    model.archived_at = datetime.now(timezone.utc)
     await session.commit()
     return True
