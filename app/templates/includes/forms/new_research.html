@@ -1,6 +1,5 @@
 <form autocomplete="off" hx-post="{{ url_for('api_create_research') }}" hx-swap="none">
     <!-- settings -->
-    {% if count_epoch %}<input type="hidden" name="count_epoch" value="{{ count_epoch }}">{% endif %}
     {% if model_answer %}<input type="hidden" name="model_answer" value="{{ model_answer }}">{% endif %}
     {% if model_search %}<input type="hidden" name="model_search" value="{{ model_search }}">{% endif %}
     {% if model_direction %}<input type="hidden" name="model_direction" value="{{ model_direction }}">{% endif %}

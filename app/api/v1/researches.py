@@ -24,7 +24,6 @@ _MAX_RESEARCH_NAME_LEN = 120
 async def post_create_research(
     request: Request,
     prompt: str = Form(...),
-    count_epoch: int = Form(5),
     model_answer: int | None = Form(None),
     model_search: int | None = Form(None),
     model_direction: int | None = Form(None),
@@ -59,7 +58,6 @@ async def post_create_research(
         user_id=user_cookie.user_id,
         research_name=research_name,
         research_version_name="v1",
-        settings_epochs_count=count_epoch,
         model_id_answer=model_answer,
         model_id_search=model_search,
         model_id_direction=model_direction,
@@ -136,7 +134,6 @@ async def delete_research(
 @router.post("/settings", name="api_edit_new_research")
 async def api_edit_new_research(
     request: Request,
-    count_epoch: int = Form(5),
     model_answer: int | None = Form(None),
     model_search: int | None = Form(None),
     model_direction: int | None = Form(None),
@@ -147,7 +144,6 @@ async def api_edit_new_research(
 ):
     """Сохранение настроек нового исследования в Redis"""
     settings = {
-        "count_epoch": count_epoch,
         "model_answer": model_answer,
         "model_search": model_search,
         "model_direction": model_direction,
