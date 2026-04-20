@@ -20,6 +20,7 @@ from app.crud.research_epoch import (
     create_research_epoch,
     get_research_epoch,
     update_research_epoch_body_finish,
+    update_research_epoch_duration,
     update_research_epoch_keywords,
     update_research_epoch_search_links,
 )
@@ -149,6 +150,7 @@ class ResearchPipeline:
 
         Steps execute sequentially; each step's result is passed to the next.
         """
+        pipeline_start = time.monotonic()
         try:
             direction = await self._step_direction_brainstorm()
         except Exception:
@@ -160,6 +162,15 @@ class ResearchPipeline:
         await self._step_scrape()
         await self._step_summarize_pages(direction)
         await self._step_write_article(direction)
+
+        duration_seconds = int(time.monotonic() - pipeline_start)
+        await update_research_epoch_duration(
+            session=self._session,
+            research_id=self._research.research_id,
+            epoch_id=0,
+            duration_seconds=duration_seconds,
+        )
+
         if self._has_error:
             await update_research_status(self._session, self._research, ResearchStatus.ERROR)
         else:
