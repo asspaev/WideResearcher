@@ -34,15 +34,18 @@ from app.services.prompts import (
     SearchResultScores,
     SearchResultToScore,
     build_direction_messages,
+    build_plan_structure_messages,
     build_relevance_messages,
     build_search_keywords_messages,
     build_summarize_page_messages,
     build_write_article_messages,
+    build_write_chapter_messages,
 )
 from app.services.searxng_client import SearXNGClient
 from app.services.web_scraper import WebScraper
 
 PAGE_CONTENT_MAX_CHARS = 8000
+WRITTEN_SO_FAR_MAX_CHARS = 40_000  # ~10k tokens
 
 SEARCH_RESULTS_PER_KEYWORD = 20
 RELEVANCE_BATCH_SIZE = 10
@@ -161,7 +164,8 @@ class ResearchPipeline:
         await self._step_search(keywords, direction)
         await self._step_scrape()
         await self._step_summarize_pages(direction)
-        await self._step_write_article(direction)
+        structure = await self._step_plan_structure(direction)
+        await self._step_write_article(direction, structure)
 
         duration_seconds = int(time.monotonic() - pipeline_start)
         await update_research_epoch_duration(
@@ -455,6 +459,16 @@ class ResearchPipeline:
                                 f"p7={s.point_7} p8={s.point_8} p9={s.point_9} "
                                 f"p10={s.point_10}"
                             )
+                        await create_model_output(
+                            session=self._session,
+                            model_id=research.model_id_search,
+                            research_id=research.research_id,
+                            epoch_id=0,
+                            step_type="relevance_scoring",
+                            model_input={"messages": messages, "keyword": keyword, "batch": batch_label},
+                            model_output={"raw": raw},
+                            response_status=ModelResponseStatus.COMPLETE,
+                        )
                         break
                     except Exception as exc:
                         logger.warning(
@@ -467,6 +481,16 @@ class ResearchPipeline:
                                 f"_step_search: relevance scoring gave up for "
                                 f"keyword={keyword!r} batch={batch_label} "
                                 f"(research_id={research.research_id})"
+                            )
+                            await create_model_output(
+                                session=self._session,
+                                model_id=research.model_id_search,
+                                research_id=research.research_id,
+                                epoch_id=0,
+                                step_type="relevance_scoring",
+                                model_input={"messages": messages, "keyword": keyword, "batch": batch_label},
+                                model_output={"error": str(exc)},
+                                response_status=ModelResponseStatus.ERROR,
                             )
 
         if scored_documents:
@@ -618,6 +642,16 @@ class ResearchPipeline:
                     epoch_id=0,
                     page_summary=summary,
                 )
+                await create_model_output(
+                    session=self._session,
+                    model_id=research.model_id_answer,
+                    research_id=research.research_id,
+                    epoch_id=0,
+                    step_type="summarize_page",
+                    model_input={"messages": messages},
+                    model_output={"url": url, "summary": summary},
+                    response_status=ModelResponseStatus.COMPLETE,
+                )
                 logger.debug(
                     f"_step_summarize_pages: summarized {url!r} "
                     f"(summary_len={len(summary)} research_id={research.research_id})"
@@ -626,23 +660,113 @@ class ResearchPipeline:
                 logger.error(
                     f"_step_summarize_pages: failed for {url!r} " f"(research_id={research.research_id}): {exc}"
                 )
+                await create_model_output(
+                    session=self._session,
+                    model_id=research.model_id_answer,
+                    research_id=research.research_id,
+                    epoch_id=0,
+                    step_type="summarize_page",
+                    model_input={"messages": messages},
+                    model_output={"url": url, "error": str(exc)},
+                    response_status=ModelResponseStatus.ERROR,
+                )
 
         logger.info(f"_step_summarize_pages: done (research_id={research.research_id})")
 
     # ------------------------------------------------------------------
-    # Step 6: article writing
+    # Step 6: research structure planning
     # ------------------------------------------------------------------
 
-    @pipeline_step(6, "WRITE")
-    async def _step_write_article(self, direction: str) -> None:
-        """Writes the final research article based on page summaries.
+    @pipeline_step(6, "STRUCTURE")
+    async def _step_plan_structure(self, direction: str) -> str:
+        """Plans the hierarchical outline of the research article.
 
         Reads page_summaries for epoch 0, builds context, calls
-        model_id_answer to generate the article, processes the result
-        via _format_as_segments, and saves to research_body_finish of epoch 0.
+        model_id_answer to generate a Markdown outline (h1/h2/h3),
+        and saves the result to model_outputs.
 
         Args:
             direction: Result of the direction_brainstorm step.
+
+        Returns:
+            Structure string (Markdown outline) or empty string on error.
+        """
+        research = self._research
+        if self._has_error:
+            logger.debug(f"_step_plan_structure: skipping due to previous error (research_id={research.research_id})")
+            return ""
+
+        epoch = await get_research_epoch(self._session, research.research_id, 0)
+        if epoch is None:
+            logger.warning(f"_step_plan_structure: epoch 0 not found (research_id={research.research_id})")
+            return ""
+
+        await update_research_stage(self._session, research, RESEARCH_STAGES["STRUCTURE"])
+
+        model = await get_model_by_id(self._session, research.model_id_answer)
+        if model is None:
+            logger.error(f"_step_plan_structure: answer model {research.model_id_answer} not found")
+            self._has_error = True
+            return ""
+
+        page_summaries = await get_page_summaries_by_epoch(self._session, research.research_id, 0)
+        summaries: list[dict] = [{"url": ps.page_url, "summary": ps.page_summary} for ps in page_summaries]
+
+        query: str = (epoch.research_body_start or {}).get("query", research.research_name)
+        messages = build_plan_structure_messages(
+            query=query,
+            direction=direction or "",
+            summaries=summaries,
+        )
+
+        llm = LLMClient(
+            model_name=model.model_api_model,
+            base_url=model.model_base_url,
+            api_key=model.model_key_api,
+        )
+
+        status = ModelResponseStatus.COMPLETE
+        structure = ""
+
+        try:
+            structure = await llm.generate(messages)
+            output_payload: dict = {"structure": structure}
+            logger.info(f"_step_plan_structure: done (research_id={research.research_id})")
+        except Exception as exc:
+            status = ModelResponseStatus.ERROR
+            output_payload = {"error": str(exc)}
+            self._has_error = True
+            logger.exception(f"_step_plan_structure: failed (research_id={research.research_id}): {exc}")
+
+        await create_model_output(
+            session=self._session,
+            model_id=research.model_id_answer,
+            research_id=research.research_id,
+            epoch_id=0,
+            step_type="plan_structure",
+            model_input={"messages": messages},
+            model_output=output_payload,
+            response_status=status,
+        )
+
+        return structure
+
+    # ------------------------------------------------------------------
+    # Step 7: iterative article writing by chapter
+    # ------------------------------------------------------------------
+
+    @pipeline_step(7, "WRITE")
+    async def _step_write_article(self, direction: str, structure: str) -> None:
+        """Writes the research article iteratively, one chapter at a time.
+
+        Parses the structure into h2 chapters, then calls model_id_answer
+        for each chapter sequentially, accumulating written content as context.
+        Each chapter call is saved to model_outputs. The combined article is
+        formatted as segments and saved to research_body_finish of epoch 0.
+
+        Args:
+            direction: Result of the direction_brainstorm step.
+            structure: Markdown outline from the plan_structure step.
         """
         research = self._research
         if self._has_error:
@@ -666,11 +790,6 @@ class ResearchPipeline:
         summaries: list[dict] = [{"url": ps.page_url, "summary": ps.page_summary} for ps in page_summaries]
 
         query: str = (epoch.research_body_start or {}).get("query", research.research_name)
-        messages = build_write_article_messages(
-            query=query,
-            direction=direction or "",
-            summaries=summaries,
-        )
 
         llm = LLMClient(
             model_name=model.model_api_model,
@@ -678,30 +797,73 @@ class ResearchPipeline:
             api_key=model.model_key_api,
         )
 
-        status = ModelResponseStatus.COMPLETE
-        output_payload: dict = {}
-        segments: list[dict] = []
+        chapters = self._parse_chapters(structure)
+        if not chapters:
+            logger.warning(
+                f"_step_write_article: no chapters parsed from structure, "
+                f"falling back to full article write (research_id={research.research_id})"
+            )
+            chapters = [structure or query]
 
-        try:
-            raw = await llm.generate(messages)
-            segments = self._format_as_segments(raw)
-            output_payload = {"segments": segments}
-            logger.info(f"_step_write_article: done (research_id={research.research_id})")
-        except Exception as exc:
-            status = ModelResponseStatus.ERROR
-            output_payload = {"error": str(exc)}
-            self._has_error = True
-            logger.exception(f"_step_write_article: failed (research_id={research.research_id}): {exc}")
+        written_so_far = ""
+        all_text_parts: list[str] = []
 
+        for i, chapter_block in enumerate(chapters):
+            messages = build_write_chapter_messages(
+                query=query,
+                direction=direction or "",
+                summaries=summaries,
+                structure=structure or "",
+                chapter=chapter_block,
+                written_so_far=written_so_far[-WRITTEN_SO_FAR_MAX_CHARS:],
+            )
+
+            status = ModelResponseStatus.COMPLETE
+            output_payload: dict = {}
+
+            try:
+                chapter_text = await llm.generate(messages)
+                output_payload = {"chapter_index": i, "chapter_text": chapter_text}
+                all_text_parts.append(chapter_text)
+                written_so_far += "\n\n" + chapter_text
+                logger.info(
+                    f"_step_write_article: chapter {i + 1}/{len(chapters)} done "
+                    f"(research_id={research.research_id})"
+                )
+            except Exception as exc:
+                status = ModelResponseStatus.ERROR
+                output_payload = {"chapter_index": i, "error": str(exc)}
+                self._has_error = True
+                logger.exception(
+                    f"_step_write_article: chapter {i + 1}/{len(chapters)} failed "
+                    f"(research_id={research.research_id}): {exc}"
+                )
+
+            await create_model_output(
+                session=self._session,
+                model_id=research.model_id_answer,
+                research_id=research.research_id,
+                epoch_id=0,
+                step_type="write_chapter",
+                model_input={"messages": messages},
+                model_output=output_payload,
+                response_status=status,
+            )
+
+        full_text = "\n\n".join(all_text_parts)
+        segments = self._format_as_segments(full_text)
+
+        combined_payload: dict = {"segments": segments} if segments else {"error": "no chapters written"}
+        combined_status = ModelResponseStatus.COMPLETE if segments else ModelResponseStatus.ERROR
         await create_model_output(
             session=self._session,
             model_id=research.model_id_answer,
             research_id=research.research_id,
             epoch_id=0,
             step_type="write_article",
-            model_input={"messages": messages},
-            model_output=output_payload,
-            response_status=status,
+            model_input={"structure": structure, "chapters_count": len(chapters)},
+            model_output=combined_payload,
+            response_status=combined_status,
         )
 
         if segments:
@@ -711,6 +873,38 @@ class ResearchPipeline:
                 epoch_id=0,
                 body_finish={"segments": segments},
             )
+            logger.info(f"_step_write_article: done (research_id={research.research_id})")
+
+    @staticmethod
+    def _parse_chapters(structure: str) -> list[str]:
+        """Splits a Markdown outline into h2-level chapter blocks.
+
+        Each block contains the ## heading line and all following ### lines
+        until the next ## heading. The top-level # heading is ignored.
+
+        Args:
+            structure: Markdown outline string produced by _step_plan_structure.
+
+        Returns:
+            List of chapter block strings (one per ## heading).
+        """
+        lines = structure.splitlines()
+        chapters: list[str] = []
+        current: list[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("## "):
+                if current:
+                    chapters.append("\n".join(current))
+                current = [line]
+            elif stripped.startswith("# "):
+                # top-level title — skip
+                pass
+            elif current:
+                current.append(line)
+        if current:
+            chapters.append("\n".join(current))
+        return chapters
 
     @staticmethod
     def _apply_inline_markdown(text: str) -> str:
