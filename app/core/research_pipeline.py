@@ -14,15 +14,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.crud.model import get_model_by_id
 from app.crud.model_output import create_model_output
-from app.crud.page_summary import get_page_summaries_by_epoch, upsert_page_summary
-from app.crud.research import update_research_stage, update_research_status
-from app.crud.research_epoch import (
-    create_research_epoch,
-    get_research_epoch,
-    update_research_epoch_body_finish,
-    update_research_epoch_duration,
-    update_research_epoch_keywords,
-    update_research_epoch_search_links,
+from app.crud.page_summary import get_page_summaries_by_research, upsert_page_summary
+from app.crud.research import (
+    update_research_body_finish,
+    update_research_body_start,
+    update_research_direction_content,
+    update_research_duration,
+    update_research_search_keywords,
+    update_research_search_links,
+    update_research_stage,
+    update_research_status,
 )
 from app.crud.scrapped_page import get_scrapped_page, upsert_scrapped_page
 from app.models.model_output import ModelResponseStatus
@@ -67,7 +68,7 @@ def pipeline_step(step_number: int, step_name: str):
     """Decorator that logs START/DONE/FAILED with timing and input parameters.
 
     Wraps an async pipeline step method. Logs:
-    - START: step number, name, user_id, research_id, epoch_id, all parameters.
+    - START: step number, name, user_id, research_id, all parameters.
     - DONE: step number, name, research_id, elapsed time.
     - FAILED: step number, name, research_id, elapsed time (then re-raises).
 
@@ -90,8 +91,7 @@ def pipeline_step(step_number: int, step_name: str):
             logger.info(
                 f"[STEP {step_number} | {step_name}] START"
                 f" | user_id={research.user_id}"
-                f" | research_id={research.research_id}"
-                f" | epoch_id=0" + (f" | {params_str}" if params_str else "")
+                f" | research_id={research.research_id}" + (f" | {params_str}" if params_str else "")
             )
             t0 = time.monotonic()
             try:
@@ -168,10 +168,9 @@ class ResearchPipeline:
         await self._step_write_article(direction, structure)
 
         duration_seconds = int(time.monotonic() - pipeline_start)
-        await update_research_epoch_duration(
+        await update_research_duration(
             session=self._session,
-            research_id=self._research.research_id,
-            epoch_id=0,
+            research=self._research,
             duration_seconds=duration_seconds,
         )
 
@@ -190,8 +189,8 @@ class ResearchPipeline:
         """Determines the research direction via LLM.
 
         Makes a single call to model_id_direction and saves the result
-        to model_outputs (epoch_id=0, step_type="direction_brainstorm"),
-        then creates a ResearchEpoch record.
+        to model_outputs (step_type="direction_brainstorm"),
+        then saves body_start and direction_content to the research record.
 
         Returns:
             Model response or empty string on error / missing model.
@@ -237,19 +236,20 @@ class ResearchPipeline:
             session=self._session,
             model_id=research.model_id_direction,
             research_id=research.research_id,
-            epoch_id=0,
             step_type="direction_brainstorm",
             model_input={"messages": messages},
             model_output=output_payload,
             response_status=status,
         )
 
-        await create_research_epoch(
+        await update_research_body_start(
             session=self._session,
-            research_id=research.research_id,
-            epoch_id=0,
+            research=research,
             body_start={"query": research.research_name},
-            body_finish={},
+        )
+        await update_research_direction_content(
+            session=self._session,
+            research=research,
             direction_content=direction_content,
         )
 
@@ -323,7 +323,6 @@ class ResearchPipeline:
             session=self._session,
             model_id=research.model_id_search,
             research_id=research.research_id,
-            epoch_id=0,
             step_type="search_keywords",
             model_input={"messages": messages},
             model_output=output_payload,
@@ -331,10 +330,9 @@ class ResearchPipeline:
         )
 
         if keywords:
-            await update_research_epoch_keywords(
+            await update_research_search_keywords(
                 session=self._session,
-                research_id=research.research_id,
-                epoch_id=0,
+                research=research,
                 keywords=keywords,
             )
 
@@ -463,7 +461,6 @@ class ResearchPipeline:
                             session=self._session,
                             model_id=research.model_id_search,
                             research_id=research.research_id,
-                            epoch_id=0,
                             step_type="relevance_scoring",
                             model_input={"messages": messages, "keyword": keyword, "batch": batch_label},
                             model_output={"raw": raw},
@@ -486,7 +483,6 @@ class ResearchPipeline:
                                 session=self._session,
                                 model_id=research.model_id_search,
                                 research_id=research.research_id,
-                                epoch_id=0,
                                 step_type="relevance_scoring",
                                 model_input={"messages": messages, "keyword": keyword, "batch": batch_label},
                                 model_output={"error": str(exc)},
@@ -499,10 +495,9 @@ class ResearchPipeline:
             for rank, (title, url, total) in enumerate(top10, 1):
                 logger.debug(f"  #{rank} total={total:.1f} title={title!r} url={url!r}")
 
-            await update_research_epoch_search_links(
+            await update_research_search_links(
                 session=self._session,
-                research_id=research.research_id,
-                epoch_id=0,
+                research=research,
                 links=[{"title": title, "url": url, "total_score": total} for title, url, total in top10],
             )
 
@@ -523,14 +518,13 @@ class ResearchPipeline:
             logger.debug(f"_step_scrape: skipping due to previous error (research_id={research.research_id})")
             return
 
-        epoch = await get_research_epoch(self._session, research.research_id, 0)
-        if epoch is None or not epoch.research_result_search_links:
+        if not research.research_result_search_links:
             logger.warning(f"_step_scrape: no links to scrape (research_id={research.research_id})")
             return
 
         await update_research_stage(self._session, research, RESEARCH_STAGES["SCRAPE"])
 
-        links: list[dict] = epoch.research_result_search_links
+        links: list[dict] = research.research_result_search_links
         research_id = research.research_id  # cache before loop — session may break
         logger.info(f"_step_scrape: scraping {len(links)} pages (research_id={research_id})")
 
@@ -597,8 +591,7 @@ class ResearchPipeline:
             logger.debug(f"_step_summarize_pages: skipping due to previous error (research_id={research.research_id})")
             return
 
-        epoch = await get_research_epoch(self._session, research.research_id, 0)
-        if epoch is None or not epoch.research_result_search_links:
+        if not research.research_result_search_links:
             logger.warning(f"_step_summarize_pages: no links found (research_id={research.research_id})")
             return
 
@@ -616,8 +609,8 @@ class ResearchPipeline:
             api_key=model.model_key_api,
         )
 
-        query: str = (epoch.research_body_start or {}).get("query", research.research_name)
-        links: list[dict] = epoch.research_result_search_links or []
+        query: str = (research.research_body_start or {}).get("query", research.research_name)
+        links: list[dict] = research.research_result_search_links or []
 
         for link in links:
             url: str = link["url"]
@@ -639,14 +632,12 @@ class ResearchPipeline:
                     session=self._session,
                     page_url=url,
                     research_id=research.research_id,
-                    epoch_id=0,
                     page_summary=summary,
                 )
                 await create_model_output(
                     session=self._session,
                     model_id=research.model_id_answer,
                     research_id=research.research_id,
-                    epoch_id=0,
                     step_type="summarize_page",
                     model_input={"messages": messages},
                     model_output={"url": url, "summary": summary},
@@ -664,7 +655,6 @@ class ResearchPipeline:
                     session=self._session,
                     model_id=research.model_id_answer,
                     research_id=research.research_id,
-                    epoch_id=0,
                     step_type="summarize_page",
                     model_input={"messages": messages},
                     model_output={"url": url, "error": str(exc)},
@@ -696,11 +686,6 @@ class ResearchPipeline:
             logger.debug(f"_step_plan_structure: skipping due to previous error (research_id={research.research_id})")
             return ""
 
-        epoch = await get_research_epoch(self._session, research.research_id, 0)
-        if epoch is None:
-            logger.warning(f"_step_plan_structure: epoch 0 not found (research_id={research.research_id})")
-            return ""
-
         await update_research_stage(self._session, research, RESEARCH_STAGES["STRUCTURE"])
 
         model = await get_model_by_id(self._session, research.model_id_answer)
@@ -709,10 +694,10 @@ class ResearchPipeline:
             self._has_error = True
             return ""
 
-        page_summaries = await get_page_summaries_by_epoch(self._session, research.research_id, 0)
+        page_summaries = await get_page_summaries_by_research(self._session, research.research_id)
         summaries: list[dict] = [{"url": ps.page_url, "summary": ps.page_summary} for ps in page_summaries]
 
-        query: str = (epoch.research_body_start or {}).get("query", research.research_name)
+        query: str = (research.research_body_start or {}).get("query", research.research_name)
         messages = build_plan_structure_messages(
             query=query,
             direction=direction or "",
@@ -742,7 +727,6 @@ class ResearchPipeline:
             session=self._session,
             model_id=research.model_id_answer,
             research_id=research.research_id,
-            epoch_id=0,
             step_type="plan_structure",
             model_input={"messages": messages},
             model_output=output_payload,
@@ -773,11 +757,6 @@ class ResearchPipeline:
             logger.debug(f"_step_write_article: skipping due to previous error (research_id={research.research_id})")
             return
 
-        epoch = await get_research_epoch(self._session, research.research_id, 0)
-        if epoch is None:
-            logger.warning(f"_step_write_article: epoch 0 not found (research_id={research.research_id})")
-            return
-
         await update_research_stage(self._session, research, RESEARCH_STAGES["WRITE"])
 
         model = await get_model_by_id(self._session, research.model_id_answer)
@@ -786,10 +765,10 @@ class ResearchPipeline:
             self._has_error = True
             return
 
-        page_summaries = await get_page_summaries_by_epoch(self._session, research.research_id, 0)
+        page_summaries = await get_page_summaries_by_research(self._session, research.research_id)
         summaries: list[dict] = [{"url": ps.page_url, "summary": ps.page_summary} for ps in page_summaries]
 
-        query: str = (epoch.research_body_start or {}).get("query", research.research_name)
+        query: str = (research.research_body_start or {}).get("query", research.research_name)
 
         llm = LLMClient(
             model_name=model.model_api_model,
@@ -843,7 +822,6 @@ class ResearchPipeline:
                 session=self._session,
                 model_id=research.model_id_answer,
                 research_id=research.research_id,
-                epoch_id=0,
                 step_type="write_chapter",
                 model_input={"messages": messages},
                 model_output=output_payload,
@@ -859,7 +837,6 @@ class ResearchPipeline:
             session=self._session,
             model_id=research.model_id_answer,
             research_id=research.research_id,
-            epoch_id=0,
             step_type="write_article",
             model_input={"structure": structure, "chapters_count": len(chapters)},
             model_output=combined_payload,
@@ -867,10 +844,9 @@ class ResearchPipeline:
         )
 
         if segments:
-            await update_research_epoch_body_finish(
+            await update_research_body_finish(
                 session=self._session,
-                research_id=research.research_id,
-                epoch_id=0,
+                research=research,
                 body_finish={"segments": segments},
             )
             logger.info(f"_step_write_article: done (research_id={research.research_id})")

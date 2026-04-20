@@ -13,7 +13,6 @@ from app.crud.research import (
     get_planned_schedule_by_research_id,
     get_research_by_id,
 )
-from app.crud.research_epoch import get_research_epoch
 from app.models import Model, Research, ResearchSchedule
 from app.schemas.model import ModelCard
 from app.schemas.research import ResearchCard
@@ -32,7 +31,7 @@ async def get_research_settings(
 ) -> dict:
     """Возвращает настройки нового исследования из Redis или дефолтные значения.
 
-    Дефолт: count_epoch=5, model_answer/model_search = первая модель пользователя (или None).
+    Дефолт: model_answer/model_search = первая модель пользователя (или None).
     """
     saved = await cache.get(research_settings_redis_key(user_id))
     if saved:
@@ -41,7 +40,6 @@ async def get_research_settings(
     models: list[Model] = await get_models_by_user_id(session, user_id)
     default_model_id: int | None = models[0].model_id if models else None
     return {
-        "count_epoch": 5,
         "model_answer": default_model_id,
         "model_search": default_model_id,
         "model_direction": default_model_id,
@@ -164,11 +162,10 @@ async def get_research_detail(
     # Родительское исследование
     parent = await get_research_by_id(session, research.research_parent_id) if research.research_parent_id else None
 
-    # Сегменты из эпохи 0
-    epoch = await get_research_epoch(session, research.research_id, 0)
+    # Сегменты результата исследования
     segments: list[dict] | None = None
-    if epoch is not None and epoch.research_body_finish:
-        body = epoch.research_body_finish
+    if research.research_body_finish:
+        body = research.research_body_finish
         if isinstance(body, list):
             segments = body
         elif isinstance(body, dict):
