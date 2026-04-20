@@ -81,6 +81,27 @@ async def update_research_epoch_body_finish(
     await session.commit()
 
 
+async def update_research_epoch_duration(
+    session: AsyncSession,
+    research_id: int,
+    epoch_id: int,
+    duration_seconds: int,
+) -> None:
+    """Сохраняет длительность выполнения эпохи в секундах.
+
+    Args:
+        session: Активная сессия БД.
+        research_id: ID исследования.
+        epoch_id: ID эпохи.
+        duration_seconds: Длительность в секундах.
+    """
+    epoch = await get_research_epoch(session, research_id, epoch_id)
+    if epoch is None:
+        return
+    epoch.epoch_duration_seconds = duration_seconds
+    await session.commit()
+
+
 async def create_research_epoch(
     session: AsyncSession,
     research_id: int,
