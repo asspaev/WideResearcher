@@ -34,6 +34,7 @@ async def create_research(
     model_id_answer: int,
     model_id_search: int,
     model_id_direction: int | None = None,
+    model_id_embed: int | None = None,
     research_parent_id: int | None = None,
     research_body_start: dict | None = None,
 ) -> Research:
@@ -46,6 +47,7 @@ async def create_research(
         model_id_answer=model_id_answer,
         model_id_search=model_id_search,
         model_id_direction=model_id_direction,
+        model_id_embed=model_id_embed,
         research_parent_id=research_parent_id,
         research_body_start=research_body_start,
     )

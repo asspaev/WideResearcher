@@ -38,11 +38,15 @@ async def get_research_settings(
         return saved
 
     models: list[Model] = await get_models_by_user_id(session, user_id)
-    default_model_id: int | None = models[0].model_id if models else None
+    generative = [m for m in models if m.model_type == "generative"]
+    embedding = [m for m in models if m.model_type == "embedding"]
+    default_generative_id: int | None = generative[0].model_id if generative else None
+    default_embedding_id: int | None = embedding[0].model_id if embedding else None
     return {
-        "model_answer": default_model_id,
-        "model_search": default_model_id,
-        "model_direction": default_model_id,
+        "model_answer": default_generative_id,
+        "model_search": default_generative_id,
+        "model_direction": default_generative_id,
+        "model_embed": default_embedding_id,
         "model_parent": "none",
     }
 
@@ -73,10 +77,17 @@ async def get_models_cards(
     models_cards: list[ModelCard] = []
     for i in range(len(models)):
         model_created_time: str = format_added_at(models[i].meta_created_at)
+        if models[i].model_type == "generative":
+            model_type = "Генеративная"
+        elif models[i].model_type == "embedding":
+            model_type = "Эмбединг"
+        else:
+            model_type = "Неизвестный тип"
         models_cards.append(
             ModelCard(
                 model_id=models[i].model_id,
                 model_name=models[i].model_name,
+                model_type=model_type,
                 model_created_time=model_created_time,
                 model_used_count=count_model_outputs[i],
             )

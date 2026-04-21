@@ -71,6 +71,7 @@ class Research(Base):
     model_id_answer: Mapped[int] = mapped_column(BigInteger, nullable=False)
     model_id_search: Mapped[int] = mapped_column(BigInteger, nullable=False)
     model_id_direction: Mapped[int | None] = mapped_column(BigInteger)
+    model_id_embed: Mapped[int | None] = mapped_column(BigInteger)
 
     # RELATIONSHIPS
     user = relationship("User", back_populates="researches")
