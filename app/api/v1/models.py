@@ -20,6 +20,7 @@ router = APIRouter(prefix=get_settings().prefix.models, tags=["models"])
 async def post_create_model(
     request: Request,
     model_name: str = Form(...),
+    model_type: str = Form(...),
     model_base_url: str = Form(...),
     model_api_model: str = Form(...),
     model_api_key: str | None = Form(None),
@@ -55,6 +56,7 @@ async def post_create_model(
         session,
         user_cookie.user_id,
         model_name,
+        model_type,
         model_base_url,
         model_api_model,
         model_api_key,

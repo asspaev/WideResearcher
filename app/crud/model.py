@@ -57,6 +57,7 @@ async def create_model(
     session: AsyncSession,
     user_id: int,
     model_name: str,
+    model_type: str,
     model_base_url: str,
     model_api_model: str,
     model_key_api: str | None = None,
@@ -67,6 +68,7 @@ async def create_model(
     new_model = Model(
         user_id=user_id,
         model_name=model_name,
+        model_type=model_type,
         model_key_api=model_key_api,
         model_base_url=model_base_url,
         model_api_model=model_api_model,
