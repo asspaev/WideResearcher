@@ -3,7 +3,7 @@ import asyncio
 from loguru import logger
 
 from app.core.celery import celery_app
-from app.core.research_pipeline import ResearchPipeline
+from app.core.research_starter import start_research
 from app.core.sql import get_sql
 from app.crud.research import get_research_by_id
 
@@ -21,4 +21,4 @@ async def _run_research(research_id: int) -> None:
             logger.error(f"run_research: research {research_id} not found")
             return
 
-        await ResearchPipeline(session, research).run()
+        await start_research(session, research)
