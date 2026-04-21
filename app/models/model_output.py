@@ -28,6 +28,7 @@ class ModelOutput(Base):
     step_type: Mapped[str] = mapped_column(Text, nullable=False)
     model_input: Mapped[dict] = mapped_column(JSONB, nullable=False)
     model_output: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    error_body: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # RELATIONSHIPS
     model = relationship("Model", back_populates="outputs")
