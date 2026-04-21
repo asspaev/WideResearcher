@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Any, Coroutine, TypeVar
 
 from loguru import logger
 from openai import AsyncOpenAI
@@ -6,10 +6,21 @@ from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.crud.model_output import create_model_output, update_model_output
+from app.models.model_output import ModelResponseStatus
 
 T = TypeVar("T", bound=BaseModel)
+
+
+class LLMGenerationError(Exception):
+    """Ошибка при генерации ответа языковой моделью."""
+
+    def __init__(self, message: str, cause: Exception | None = None) -> None:
+        super().__init__(message)
+        self.cause = cause
 
 
 class LLMClient:
@@ -42,16 +53,66 @@ class LLMClient:
             timeout=get_settings().app.llm_timeout,
         )
 
-    async def generate(self, context: list[dict]) -> str:
-        """Отправляет запрос в модель и возвращает текстовый ответ.
+    async def _run_with_tracking(
+        self,
+        coro: Coroutine[Any, Any, Any],
+        model_input: dict,
+        session: AsyncSession,
+        model_id: int,
+        research_id: int,
+        step_type: str,
+    ) -> Any:
+        """Выполняет корутину генерации с сохранением хода выполнения в БД.
+
+        Создаёт запись со статусом PROCESSING до запроса к модели, после
+        получения ответа обновляет её до COMPLETE или ERROR.
 
         Args:
-            context: Список сообщений в формате OpenAI Chat:
-                     [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}].
+            coro: Корутина, выполняющая фактический запрос к модели.
+            model_input: Входные данные (сохраняются в БД).
+            session: Асинхронная сессия БД.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
 
         Returns:
-            Текст ответа модели (content первого choice).
+            Результат корутины.
+
+        Raises:
+            LLMGenerationError: Если запрос к модели завершился ошибкой.
         """
+        record = await create_model_output(
+            session=session,
+            model_id=model_id,
+            research_id=research_id,
+            step_type=step_type,
+            model_input=model_input,
+            model_output={},
+            response_status=ModelResponseStatus.PROCESSING,
+        )
+        try:
+            result = await coro
+            output = result.model_dump() if isinstance(result, BaseModel) else {"content": result}
+            await update_model_output(
+                session=session,
+                response_id=record.response_id,
+                response_status=ModelResponseStatus.COMPLETE,
+                model_output=output,
+            )
+            return result
+        except LLMGenerationError:
+            raise
+        except Exception as e:
+            await update_model_output(
+                session=session,
+                response_id=record.response_id,
+                response_status=ModelResponseStatus.ERROR,
+                model_output={},
+                error_body=str(e),
+            )
+            raise LLMGenerationError(f"Ошибка при генерации ответа моделью {self.model_name}: {e}", cause=e) from e
+
+    async def _do_generate(self, context: list[dict]) -> str:
         logger.debug(f"LLMClient: generate model={self.model_name} base_url={self._base_url} messages={len(context)}")
         response = await self._client.chat.completions.create(
             model=self.model_name,
@@ -59,16 +120,7 @@ class LLMClient:
         )
         return response.choices[0].message.content
 
-    async def generate_structured(self, context: list[dict], output_type: type[T]) -> T:
-        """Отправляет запрос в модель и возвращает структурированный ответ в виде Pydantic-модели.
-
-        Args:
-            context: Список сообщений в формате OpenAI Chat.
-            output_type: Pydantic-модель, которую должна вернуть модель.
-
-        Returns:
-            Экземпляр переданной Pydantic-модели, заполненный данными из ответа LLM.
-        """
+    async def _do_generate_structured(self, context: list[dict], output_type: type[T]) -> T:
         logger.debug(
             f"LLMClient: generate_structured model={self.model_name} "
             f"messages={len(context)} output_type={output_type.__name__}"
@@ -88,3 +140,70 @@ class LLMClient:
 
         result = await agent.run(user_prompt)
         return result.output
+
+    async def generate(
+        self,
+        context: list[dict],
+        session: AsyncSession,
+        model_id: int,
+        research_id: int,
+        step_type: str,
+    ) -> str:
+        """Отправляет запрос в модель и возвращает текстовый ответ.
+
+        Args:
+            context: Список сообщений в формате OpenAI Chat:
+                     [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}].
+            session: Асинхронная сессия БД для сохранения результата.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
+
+        Returns:
+            Текст ответа модели.
+
+        Raises:
+            LLMGenerationError: Если запрос завершился ошибкой.
+        """
+        return await self._run_with_tracking(
+            coro=self._do_generate(context),
+            model_input={"messages": context},
+            session=session,
+            model_id=model_id,
+            research_id=research_id,
+            step_type=step_type,
+        )
+
+    async def generate_structured(
+        self,
+        context: list[dict],
+        output_type: type[T],
+        session: AsyncSession,
+        model_id: int,
+        research_id: int,
+        step_type: str,
+    ) -> T:
+        """Отправляет запрос в модель и возвращает структурированный ответ в виде Pydantic-модели.
+
+        Args:
+            context: Список сообщений в формате OpenAI Chat.
+            output_type: Pydantic-модель, которую должна вернуть модель.
+            session: Асинхронная сессия БД для сохранения результата.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
+
+        Returns:
+            Экземпляр переданной Pydantic-модели, заполненный данными из ответа LLM.
+
+        Raises:
+            LLMGenerationError: Если запрос завершился ошибкой.
+        """
+        return await self._run_with_tracking(
+            coro=self._do_generate_structured(context, output_type),
+            model_input={"messages": context},
+            session=session,
+            model_id=model_id,
+            research_id=research_id,
+            step_type=step_type,
+        )
