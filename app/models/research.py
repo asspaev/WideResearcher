@@ -56,6 +56,12 @@ class Research(Base):
     # SETTINGS-параметры
     settings_search_areas: Mapped[dict | None] = mapped_column(JSONB)
     settings_exclude_search_areas: Mapped[dict | None] = mapped_column(JSONB)
+    settings_n_vectors: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
+    settings_n_search_queries: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
+    settings_n_top_pages: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
+    settings_n_async_parse: Mapped[int] = mapped_column(Integer, default=3, server_default="3", nullable=False)
+    settings_summarize_type: Mapped[str] = mapped_column(Text, default="bm25", server_default="bm25", nullable=False)
+    settings_scenario_type: Mapped[str] = mapped_column(Text, default="normal", server_default="normal", nullable=False)
 
     # META-параметры
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
