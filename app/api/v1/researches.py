@@ -62,6 +62,7 @@ async def post_create_research(
         model_id_search=model_search,
         model_id_direction=model_direction,
         research_parent_id=research_parent_id,
+        research_body_start={"prompt": research_name},
     )
     logger.info(f"Research created: {research.research_id} for user {user_cookie.user_id} {user_cookie.user_login}")
 

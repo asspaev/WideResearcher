@@ -35,6 +35,7 @@ async def create_research(
     model_id_search: int,
     model_id_direction: int | None = None,
     research_parent_id: int | None = None,
+    research_body_start: dict | None = None,
 ) -> Research:
     research = Research(
         user_id=user_id,
@@ -46,6 +47,7 @@ async def create_research(
         model_id_search=model_id_search,
         model_id_direction=model_id_direction,
         research_parent_id=research_parent_id,
+        research_body_start=research_body_start,
     )
     session.add(research)
     await session.commit()
@@ -252,4 +254,14 @@ async def update_research_duration(
     duration_seconds: int,
 ) -> None:
     research.research_duration_seconds = duration_seconds
+    await session.commit()
+
+
+async def update_research_error(
+    session: AsyncSession,
+    research: Research,
+    error_body: str,
+) -> None:
+    research.research_status = ResearchStatus.ERROR
+    research.research_error_body = error_body
     await session.commit()

@@ -52,6 +52,7 @@ class AppConfig(BaseModel):
     port: int
     fast: bool = False
     llm_timeout: float = 3600.0
+    bm25_chunk_size: int = 500
 
 
 class AuthConfig(BaseModel):
