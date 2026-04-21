@@ -11,7 +11,7 @@
                 <h2>Модели</h2>
                 <div class="field">
                     <select name="model_answer" class="input">
-                        {% for model in models %}
+                        {% for model in generative_models %}
                         <option value="{{ model.model_id }}" {% if model_answer and model.model_id==model_answer
                             %}selected{% endif %}>
                             {{ model.model_name }}
@@ -22,7 +22,7 @@
                 </div>
                 <div class="field">
                     <select name="model_search" class="input">
-                        {% for model in models %}
+                        {% for model in generative_models %}
                         <option value="{{ model.model_id }}" {% if model_search and model.model_id==model_search
                             %}selected{% endif %}>
                             {{ model.model_name }}
@@ -33,7 +33,7 @@
                 </div>
                 <div class="field">
                     <select name="model_direction" class="input">
-                        {% for model in models %}
+                        {% for model in generative_models %}
                         <option value="{{ model.model_id }}" {% if model_direction and model.model_id==model_direction
                             %}selected{% endif %}>
                             {{ model.model_name }}
@@ -41,6 +41,17 @@
                         {% endfor %}
                     </select>
                     <label>Модель направления исследования</label>
+                </div>
+                <div class="field">
+                    <select name="model_embed" class="input">
+                        {% for model in embedding_models %}
+                        <option value="{{ model.model_id }}" {% if model_embed and model.model_id==model_embed
+                            %}selected{% endif %}>
+                            {{ model.model_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label>Модель эмбединга</label>
                 </div>
             </div>
             <div class="block">

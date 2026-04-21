@@ -11,6 +11,7 @@
                 <p class="card-name">{{ model.model_name }}</p>
             </div>
             <div class="card-properties">
+                <p class="card-property">Тип: <span>{{ model.model_type }}</span></p>
                 <p class="card-property">Добавлена <span>{{ model.model_created_time }}</span></p>
                 <p class="card-property">Была использована <span>{{ model.model_used_count }} раз</span></p>
             </div>
@@ -34,7 +35,8 @@
     </div>
     {% endfor %}
     {% else %}
-    <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('new_model') }}" class="button primary dashed col-max">
+    <a href="#" hx-swap="none" hx-trigger="click" hx-get="{{ url_for('new_model') }}"
+        class="button primary dashed col-max">
         Добавить новую модель
     </a>
     <div class="empty-block">

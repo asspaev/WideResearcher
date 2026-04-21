@@ -71,6 +71,8 @@ async def get_popup_edit_new_research(
 ):
     """Рендер всплывающего окна редактирования нового исследования"""
     models: list[Model] = await get_models_by_user_id(session, user_cookie.user_id)
+    generative_models = [m for m in models if m.model_type == "generative"]
+    embedding_models = [m for m in models if m.model_type == "embedding"]
 
     saved: dict = {}
     has_settings: bool = False
@@ -86,7 +88,8 @@ async def get_popup_edit_new_research(
         "includes/popups/edit_new_research.html",
         {
             "request": request,
-            "models": models,
+            "generative_models": generative_models,
+            "embedding_models": embedding_models,
             "previous_screen": previous_screen,
             "has_settings": has_settings,
             **saved,

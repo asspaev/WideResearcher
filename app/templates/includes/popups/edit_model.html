@@ -12,6 +12,10 @@
                         readonly>
                     <label>Название модели</label>
                 </div>
+                <div class="field">
+                    <input name="model_type" type="text" value="{{ {'generative': 'Генеративная', 'embedding': 'Эмбединг'}[model.model_type] }}" readonly>
+                    <label>Тип модели</label>
+                </div>
                 {% include 'includes/forms/model_api_options.html' %}
             </div>
             <div class="column gap-12">

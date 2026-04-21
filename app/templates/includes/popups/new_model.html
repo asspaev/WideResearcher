@@ -11,6 +11,13 @@
                     <input name="model_name" type="text" placeholder="Название модели">
                     <label>Название модели</label>
                 </div>
+                <div class="field">
+                    <select name="model_type" class="input">
+                        <option value="generative" selected>Генеративная</option>
+                        <option value="embedding">Эмбединг</option>
+                    </select>
+                    <label>Тип модели</label>
+                </div>
                 {% include 'includes/forms/model_api_options.html' %}
             </div>
             <div class="column gap-12">
