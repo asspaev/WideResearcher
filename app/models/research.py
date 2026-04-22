@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -54,6 +54,7 @@ class Research(Base):
     research_search_keywords: Mapped[dict | None] = mapped_column(JSONB)
     research_result_search_links: Mapped[dict | None] = mapped_column(JSONB)
     research_result_bm25_links: Mapped[dict | None] = mapped_column(JSONB)
+    research_result_embed_summary: Mapped[float | None] = mapped_column(Float(precision=53))
     research_result_embed_links: Mapped[dict | None] = mapped_column(JSONB)
     research_result_rerank_links: Mapped[dict | None] = mapped_column(JSONB)
     research_error_body: Mapped[str | None] = mapped_column(Text)
