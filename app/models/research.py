@@ -13,6 +13,7 @@ RESEARCH_STAGES: dict[str, str] = {
     "KEYWORDS": "KEYWORDS",
     "SEARCH": "SEARCH",
     "SCRAPE": "SCRAPE",
+    "SCORING_BM25": "SCORING_BM25",
     "SUMMARIZE": "SUMMARIZE",
     "STRUCTURE": "STRUCTURE",
     "WRITE": "WRITE",
@@ -63,8 +64,10 @@ class Research(Base):
     settings_n_vectors: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
     settings_n_search_queries: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
     settings_n_top_pages: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
+    settings_n_bm25_pages: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
+    settings_n_embed_pages: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
+    settings_n_rerank_pages: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
     settings_n_async_parse: Mapped[int] = mapped_column(Integer, default=3, server_default="3", nullable=False)
-    settings_summarize_type: Mapped[str] = mapped_column(Text, default="bm25", server_default="bm25", nullable=False)
     settings_scenario_type: Mapped[str] = mapped_column(Text, default="normal", server_default="normal", nullable=False)
 
     # META-параметры
