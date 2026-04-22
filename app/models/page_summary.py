@@ -14,8 +14,10 @@ class PageSummary(Base):
     research_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("researches.research_id"), primary_key=True)
 
     # CONTENT
+    bm25_score: Mapped[float] = mapped_column(Numeric(4, 3), nullable=True)
+    embed_score: Mapped[float] = mapped_column(Numeric(4, 3), nullable=True)
+    rerank_score: Mapped[float] = mapped_column(Numeric(4, 3), nullable=True)
     page_summary: Mapped[str] = mapped_column(Text, nullable=False)
-    relevance_score: Mapped[float] = mapped_column(Numeric(4, 3), nullable=True)
 
     # RELATIONSHIPS
     scrapped_page = relationship("ScrappedPage", back_populates="summaries")

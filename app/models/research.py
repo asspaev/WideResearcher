@@ -52,6 +52,9 @@ class Research(Base):
     research_direction_content: Mapped[str | None] = mapped_column(Text)
     research_search_keywords: Mapped[dict | None] = mapped_column(JSONB)
     research_result_search_links: Mapped[dict | None] = mapped_column(JSONB)
+    research_result_bm25_links: Mapped[dict | None] = mapped_column(JSONB)
+    research_result_embed_links: Mapped[dict | None] = mapped_column(JSONB)
+    research_result_rerank_links: Mapped[dict | None] = mapped_column(JSONB)
     research_error_body: Mapped[str | None] = mapped_column(Text)
 
     # SETTINGS-параметры
@@ -72,6 +75,7 @@ class Research(Base):
     model_id_search: Mapped[int] = mapped_column(BigInteger, nullable=False)
     model_id_direction: Mapped[int | None] = mapped_column(BigInteger)
     model_id_embed: Mapped[int | None] = mapped_column(BigInteger)
+    model_id_reranker: Mapped[int | None] = mapped_column(BigInteger)
 
     # RELATIONSHIPS
     user = relationship("User", back_populates="researches")
