@@ -1,6 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.research import BM25ScoringStep, DirectionResearchStep, KeywordsResearchStep, SearchResearchStep
+from app.core.research import (
+    BM25ScoringStep,
+    DirectionResearchStep,
+    EmbedScoringStep,
+    KeywordsResearchStep,
+    SearchResearchStep,
+)
 from app.core.research.write import NormalWriteStep
 from app.models.research import Research
 
@@ -21,6 +27,7 @@ class NormalScenario(ScenarioBase):
         self.keywords_step = KeywordsResearchStep(session, research)
         self.search_step = SearchResearchStep(session, research)
         self.bm25_scoring_step = BM25ScoringStep(session, research)
+        self.embed_scoring_step = EmbedScoringStep(session, research)
         # self.write_step = self.get_write_step()
 
     async def pipeline(self):
@@ -29,6 +36,7 @@ class NormalScenario(ScenarioBase):
             await self.keywords_step.execute()
             await self.search_step.execute()
             await self.bm25_scoring_step.execute()
+            await self.embed_scoring_step.execute()
             # await self.write_step.execute()
         except Exception:
             raise
