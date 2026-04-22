@@ -112,6 +112,27 @@ class LLMClient:
             )
             raise LLMGenerationError(f"Ошибка при генерации ответа моделью {self.model_name}: {e}", cause=e) from e
 
+    async def embed(self, text: str) -> list[float]:
+        """Возвращает вектор эмбеддинга для переданного текста.
+
+        Args:
+            text: Текст для эмбеддинга.
+
+        Returns:
+            Вектор эмбеддинга в виде списка float.
+
+        Raises:
+            LLMGenerationError: Если запрос к модели завершился ошибкой.
+        """
+        try:
+            response = await self._client.embeddings.create(
+                model=self.model_name,
+                input=text,
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            raise LLMGenerationError(f"Ошибка при получении эмбеддинга моделью {self.model_name}: {e}", cause=e) from e
+
     async def _do_generate(self, context: list[dict]) -> str:
         logger.debug(f"LLMClient: generate model={self.model_name} base_url={self._base_url} messages={len(context)}")
         response = await self._client.chat.completions.create(
