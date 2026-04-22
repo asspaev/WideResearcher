@@ -47,6 +47,32 @@ async def upsert_page_summary(
     await session.commit()
 
 
+async def upsert_page_bm25_score(
+    session: AsyncSession,
+    page_url: str,
+    research_id: int,
+    bm25_score: float,
+) -> None:
+    """Создаёт или обновляет bm25_score страницы для конкретного исследования.
+
+    Args:
+        session: Активная сессия БД.
+        page_url: URL страницы.
+        research_id: Идентификатор исследования.
+        bm25_score: BM25-оценка релевантности от 0 до 1.0.
+    """
+    stmt = (
+        insert(PageSummary)
+        .values(page_url=page_url, research_id=research_id, bm25_score=bm25_score, page_summary="")
+        .on_conflict_do_update(
+            index_elements=["page_url", "research_id"],
+            set_={"bm25_score": bm25_score},
+        )
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+
 async def get_page_summaries_by_research(
     session: AsyncSession,
     research_id: int,

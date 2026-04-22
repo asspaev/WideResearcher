@@ -261,6 +261,15 @@ async def update_research_duration(
     await session.commit()
 
 
+async def update_research_bm25_links(
+    session: AsyncSession,
+    research: Research,
+    links: list[dict],
+) -> None:
+    research.research_result_bm25_links = links
+    await session.commit()
+
+
 async def update_research_error(
     session: AsyncSession,
     research: Research,
