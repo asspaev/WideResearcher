@@ -270,6 +270,24 @@ async def update_research_bm25_links(
     await session.commit()
 
 
+async def update_research_embed_summary(
+    session: AsyncSession,
+    research: Research,
+    embed_summary: list[float],
+) -> None:
+    research.research_result_embed_summary = embed_summary
+    await session.commit()
+
+
+async def update_research_embed_links(
+    session: AsyncSession,
+    research: Research,
+    links: list[dict],
+) -> None:
+    research.research_result_embed_links = links
+    await session.commit()
+
+
 async def update_research_error(
     session: AsyncSession,
     research: Research,
