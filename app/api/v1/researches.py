@@ -28,6 +28,7 @@ async def post_create_research(
     model_search: int | None = Form(None),
     model_direction: int | None = Form(None),
     model_embed: int | None = Form(None),
+    model_reranker: int | None = Form(None),
     model_parent: str = Form("none"),
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
@@ -41,6 +42,8 @@ async def post_create_research(
             model_direction = settings.get("model_direction")
         if model_embed is None:
             model_embed = settings.get("model_embed")
+        if model_reranker is None:
+            model_reranker = settings.get("model_reranker")
         logger.debug(f"Model direction for new research: {model_direction}")
 
     if not model_answer or not model_search:
@@ -65,6 +68,7 @@ async def post_create_research(
         model_id_search=model_search,
         model_id_direction=model_direction,
         model_id_embed=model_embed,
+        model_id_reranker=model_reranker,
         research_parent_id=research_parent_id,
         research_body_start={"prompt": research_name},
     )
@@ -143,6 +147,7 @@ async def api_edit_new_research(
     model_search: int | None = Form(None),
     model_direction: int | None = Form(None),
     model_embed: int | None = Form(None),
+    model_reranker: int | None = Form(None),
     model_parent: str = Form("none"),
     previous_screen: str | None = Form(None),
     user_cookie: UserCookie = Depends(get_user_cookie),
@@ -154,6 +159,7 @@ async def api_edit_new_research(
         "model_search": model_search,
         "model_direction": model_direction,
         "model_embed": model_embed,
+        "model_reranker": model_reranker,
         "model_parent": model_parent,
     }
     cache = get_redis_cache()
