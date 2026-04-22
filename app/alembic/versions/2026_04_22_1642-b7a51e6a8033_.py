@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1148f1c1dd5d
+Revision ID: b7a51e6a8033
 Revises:
-Create Date: 2026-04-20 15:33:33.515386
+Create Date: 2026-04-22 16:42:06.238930
 
 """
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "1148f1c1dd5d"
+revision: str = "b7a51e6a8033"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -49,6 +49,7 @@ def upgrade() -> None:
         sa.Column("model_id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("model_name", sa.String(length=120), nullable=False),
+        sa.Column("model_type", sa.String(length=50), nullable=False),
         sa.Column("model_key_api", sa.Text(), nullable=True),
         sa.Column("model_base_url", sa.Text(), nullable=False),
         sa.Column("model_api_model", sa.Text(), nullable=False),
@@ -77,12 +78,24 @@ def upgrade() -> None:
         sa.Column("research_direction_content", sa.Text(), nullable=True),
         sa.Column("research_search_keywords", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("research_result_search_links", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("research_result_bm25_links", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("research_result_embed_links", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("research_result_rerank_links", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("research_error_body", sa.Text(), nullable=True),
         sa.Column("settings_search_areas", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("settings_exclude_search_areas", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("settings_n_vectors", sa.Integer(), server_default="5", nullable=False),
+        sa.Column("settings_n_search_queries", sa.Integer(), server_default="5", nullable=False),
+        sa.Column("settings_n_top_pages", sa.Integer(), server_default="10", nullable=False),
+        sa.Column("settings_n_async_parse", sa.Integer(), server_default="3", nullable=False),
+        sa.Column("settings_summarize_type", sa.Text(), server_default="bm25", nullable=False),
+        sa.Column("settings_scenario_type", sa.Text(), server_default="normal", nullable=False),
         sa.Column("archived_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("model_id_answer", sa.BigInteger(), nullable=False),
         sa.Column("model_id_search", sa.BigInteger(), nullable=False),
         sa.Column("model_id_direction", sa.BigInteger(), nullable=True),
+        sa.Column("model_id_embed", sa.BigInteger(), nullable=True),
+        sa.Column("model_id_reranker", sa.BigInteger(), nullable=True),
         sa.Column("meta_created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("meta_updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(
@@ -125,6 +138,7 @@ def upgrade() -> None:
         sa.Column("step_type", sa.Text(), nullable=False),
         sa.Column("model_input", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("model_output", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("error_body", sa.Text(), nullable=True),
         sa.Column("meta_created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("meta_updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(["model_id"], ["models.model_id"], name=op.f("fk_model_outputs_model_id_models")),
@@ -137,6 +151,9 @@ def upgrade() -> None:
         "page_summaries",
         sa.Column("page_url", sa.Text(), nullable=False),
         sa.Column("research_id", sa.BigInteger(), nullable=False),
+        sa.Column("bm25_score", sa.Numeric(precision=4, scale=3), nullable=True),
+        sa.Column("embed_score", sa.Numeric(precision=4, scale=3), nullable=True),
+        sa.Column("rerank_score", sa.Numeric(precision=4, scale=3), nullable=True),
         sa.Column("page_summary", sa.Text(), nullable=False),
         sa.Column("meta_created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("meta_updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
