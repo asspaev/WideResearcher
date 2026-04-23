@@ -112,11 +112,29 @@ class LLMClient:
             )
             raise LLMGenerationError(f"Ошибка при генерации ответа моделью {self.model_name}: {e}", cause=e) from e
 
-    async def embed(self, text: str) -> list[float]:
-        """Возвращает вектор эмбеддинга для переданного текста.
+    async def _do_embed(self, text: str) -> list[float]:
+        response = await self._client.embeddings.create(
+            model=self.model_name,
+            input=text,
+        )
+        return response.data[0].embedding
+
+    async def embed(
+        self,
+        text: str,
+        session: AsyncSession,
+        model_id: int,
+        research_id: int,
+        step_type: str,
+    ) -> list[float]:
+        """Возвращает вектор эмбеддинга для переданного текста с сохранением в model_outputs.
 
         Args:
             text: Текст для эмбеддинга.
+            session: Асинхронная сессия БД для сохранения результата.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
 
         Returns:
             Вектор эмбеддинга в виде списка float.
@@ -124,14 +142,14 @@ class LLMClient:
         Raises:
             LLMGenerationError: Если запрос к модели завершился ошибкой.
         """
-        try:
-            response = await self._client.embeddings.create(
-                model=self.model_name,
-                input=text,
-            )
-            return response.data[0].embedding
-        except Exception as e:
-            raise LLMGenerationError(f"Ошибка при получении эмбеддинга моделью {self.model_name}: {e}", cause=e) from e
+        return await self._run_with_tracking(
+            coro=self._do_embed(text),
+            model_input={"text": text},
+            session=session,
+            model_id=model_id,
+            research_id=research_id,
+            step_type=step_type,
+        )
 
     async def _do_generate(self, context: list[dict]) -> str:
         logger.debug(f"LLMClient: generate model={self.model_name} base_url={self._base_url} messages={len(context)}")
