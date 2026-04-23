@@ -47,7 +47,7 @@ async def get_research_settings(
         "model_search": default_generative_id,
         "model_direction": default_generative_id,
         "model_embed": default_embedding_id,
-        "model_reranker": None,
+        "model_reranker": default_generative_id,
         "model_parent": "none",
     }
 

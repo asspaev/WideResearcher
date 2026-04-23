@@ -34,7 +34,7 @@ async def post_create_research(
     session: AsyncSession = Depends(get_session),
 ):
     """Создание исследования и запуск Celery-задачи"""
-    if not model_answer or not model_search or model_direction is None:
+    if not model_answer or not model_search or model_direction is None or model_embed is None or model_reranker is None:
         settings = await get_research_settings(user_cookie.user_id, session, get_redis_cache())
         model_answer = model_answer or settings.get("model_answer")
         model_search = model_search or settings.get("model_search")
