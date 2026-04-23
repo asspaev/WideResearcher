@@ -5,6 +5,7 @@ from app.core.research import (
     DirectionResearchStep,
     EmbedScoringStep,
     KeywordsResearchStep,
+    RerankScoringStep,
     SearchResearchStep,
 )
 from app.core.research.write import NormalWriteStep
@@ -28,6 +29,7 @@ class NormalScenario(ScenarioBase):
         self.search_step = SearchResearchStep(session, research)
         self.bm25_scoring_step = BM25ScoringStep(session, research)
         self.embed_scoring_step = EmbedScoringStep(session, research)
+        self.rerank_scoring_step = RerankScoringStep(session, research)
         # self.write_step = self.get_write_step()
 
     async def pipeline(self):
@@ -37,6 +39,7 @@ class NormalScenario(ScenarioBase):
             await self.search_step.execute()
             await self.bm25_scoring_step.execute()
             await self.embed_scoring_step.execute()
+            await self.rerank_scoring_step.execute()
             # await self.write_step.execute()
         except Exception:
             raise

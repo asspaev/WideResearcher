@@ -1,7 +1,7 @@
 from .base import ResearchStepBase
 from .direction import DirectionResearchStep, DirectionStepError
 from .keywords import KeywordsResearchStep
-from .scoring_pages import BM25ScoringStep, EmbedScoringStep, ScoringPagesStepBase
+from .scoring_pages import BM25ScoringStep, EmbedScoringStep, RerankScoringStep, ScoringPagesStepBase
 from .search import SearchResearchStep
 from .summarize import BM25SummarizeStep, SummarizeStepBase
 from .write import NormalWriteStep, WriteStepBase
@@ -12,6 +12,7 @@ __all__ = [
     "SearchResearchStep",
     "BM25ScoringStep",
     "EmbedScoringStep",
+    "RerankScoringStep",
     "ScoringPagesStepBase",
     "BM25SummarizeStep",
     "SummarizeStepBase",

@@ -288,6 +288,15 @@ async def update_research_embed_links(
     await session.commit()
 
 
+async def update_research_rerank_links(
+    session: AsyncSession,
+    research: Research,
+    links: list[dict],
+) -> None:
+    research.research_result_rerank_links = links
+    await session.commit()
+
+
 async def update_research_error(
     session: AsyncSession,
     research: Research,

@@ -112,6 +112,32 @@ async def upsert_page_embed_score(
     await session.commit()
 
 
+async def upsert_page_rerank_score(
+    session: AsyncSession,
+    page_url: str,
+    research_id: int,
+    rerank_score: float,
+) -> None:
+    """Создаёт или обновляет rerank_score страницы для конкретного исследования.
+
+    Args:
+        session: Активная сессия БД.
+        page_url: URL страницы.
+        research_id: Идентификатор исследования.
+        rerank_score: Rerank-оценка релевантности от 0 до 1.0.
+    """
+    stmt = (
+        insert(PageSummary)
+        .values(page_url=page_url, research_id=research_id, rerank_score=rerank_score, page_summary="")
+        .on_conflict_do_update(
+            index_elements=["page_url", "research_id"],
+            set_={"rerank_score": rerank_score},
+        )
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+
 async def get_page_summary(
     session: AsyncSession,
     page_url: str,
