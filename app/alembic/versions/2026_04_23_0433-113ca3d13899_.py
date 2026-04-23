@@ -91,7 +91,7 @@ def upgrade() -> None:
         sa.Column("settings_n_vectors", sa.Integer(), server_default="5", nullable=False),
         sa.Column("settings_n_search_queries", sa.Integer(), server_default="5", nullable=False),
         sa.Column("settings_n_top_search_results", sa.Integer(), server_default="10", nullable=False),
-        sa.Column("settings_n_top_bm25_chunks", sa.Integer(), server_default="200", nullable=False),
+        sa.Column("settings_n_top_bm25_chunks", sa.Integer(), server_default="50", nullable=False),
         sa.Column("settings_n_top_embed_chunks", sa.Integer(), server_default="30", nullable=False),
         sa.Column("settings_n_top_rerank_chunks", sa.Integer(), server_default="15", nullable=False),
         sa.Column("settings_n_top_chunks", sa.Integer(), server_default="10", nullable=False),
