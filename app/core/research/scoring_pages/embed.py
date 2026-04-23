@@ -8,9 +8,7 @@ from app.crud.scrapped_page import get_scrapped_page
 from app.models.research import RESEARCH_STAGES
 
 from .base import ScoringPagesStepBase
-
-# ~4 символа на токен → 8 000 токенов ≈ 32 000 символов, безопасно до 24 000 чтобы учесть возможные токены в embed-результате и не перегрузить модель
-_CHARS_PER_CHUNK = 24_000
+from .chunks import chunk_text
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -20,11 +18,6 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     if norm_a == 0.0 or norm_b == 0.0:
         return 0.0
     return dot / (norm_a * norm_b)
-
-
-def _chunk_text(text: str, chunk_size: int = _CHARS_PER_CHUNK) -> list[str]:
-    """Разбивает текст на чанки заданного размера (в символах)."""
-    return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
 class EmbedScoringStep(ScoringPagesStepBase):
@@ -61,7 +54,13 @@ class EmbedScoringStep(ScoringPagesStepBase):
             direction: str = research.research_direction_content or ""
             summary_text: str = f"{query} {direction}".strip()
             try:
-                summary_embedding = await llm.embed(summary_text)
+                summary_embedding = await llm.embed(
+                    summary_text,
+                    session=self._session,
+                    model_id=research.model_id_embed,
+                    research_id=research.research_id,
+                    step_type="embed_summary",
+                )
             except Exception as exc:
                 logger.error(f"{self._log_extra()} EmbedScoringStep: failed to embed summary: {exc}")
                 return
@@ -84,12 +83,18 @@ class EmbedScoringStep(ScoringPagesStepBase):
                 best_similarity = _cosine_similarity(summary_embedding, best_embedding)
                 logger.debug(f"{self._log_extra()} EmbedScoringStep: using cached page embedding for {url!r}")
             else:
-                chunks = _chunk_text(page.page_clean_content)
+                chunks = chunk_text(page.page_clean_content)
                 best_similarity = -1.0
                 best_embedding = []
                 for chunk_idx, chunk in enumerate(chunks):
                     try:
-                        chunk_embedding = await llm.embed(chunk)
+                        chunk_embedding = await llm.embed(
+                            chunk,
+                            session=self._session,
+                            model_id=research.model_id_embed,
+                            research_id=research.research_id,
+                            step_type="embed_chunk",
+                        )
                     except Exception as exc:
                         logger.error(
                             f"{self._log_extra()} EmbedScoringStep: failed to embed chunk {chunk_idx} "
