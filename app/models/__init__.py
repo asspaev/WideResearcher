@@ -1,8 +1,8 @@
 __all__ = [
     "Base",
+    "ChunkSummary",
     "Model",
     "ModelOutput",
-    "PageSummary",
     "Research",
     "ResearchSchedule",
     "ScrappedPage",
@@ -11,9 +11,9 @@ __all__ = [
 ]
 
 from .base import Base
+from .chunk_summary import ChunkSummary
 from .model import Model
 from .model_output import ModelOutput
-from .page_summary import PageSummary
 from .research import Research
 from .research_schedule import ResearchSchedule
 from .scrapped_page import ScrappedPage

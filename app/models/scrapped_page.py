@@ -25,4 +25,4 @@ class ScrappedPage(Base):
     )
 
     # RELATIONSHIPS
-    summaries = relationship("PageSummary", back_populates="scrapped_page")
+    summaries = relationship("ChunkSummary", back_populates="scrapped_page")
