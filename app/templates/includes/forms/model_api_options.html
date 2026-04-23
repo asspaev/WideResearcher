@@ -14,4 +14,9 @@
             %}value="{{ model.model_key_api }}" {% endif %}>
         <label>Ключ API</label>
     </div>
+    <div class="field">
+        <input name="model_max_tokens" type="number" placeholder="8000" min="1"
+            value="{{ model.model_max_tokens if model else 8000 }}">
+        <label>Max Tokens</label>
+    </div>
 </div>
