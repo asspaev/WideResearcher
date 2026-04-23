@@ -42,7 +42,7 @@ class SearchResearchStep(ResearchStepBase):
         await self._clean_pages(urls)
 
     async def _search_top_pages(self, keywords: list[str]) -> list[str]:
-        """Ищет research.settings_n_top_pages страниц через SearXNG для каждого ключевого слова.
+        """Ищет research.settings_n_top_search_results страниц через SearXNG для каждого ключевого слова.
 
         Args:
             keywords: Список поисковых запросов.
@@ -60,7 +60,7 @@ class SearchResearchStep(ResearchStepBase):
 
         for keyword in keywords:
             try:
-                results = await client.search(keyword, n_results=self._research.settings_n_top_pages)
+                results = await client.search(keyword, n_results=self._research.settings_n_top_search_results)
                 consecutive_errors = 0
                 for r in results:
                     if r.url not in seen:

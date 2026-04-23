@@ -261,12 +261,12 @@ async def update_research_duration(
     await session.commit()
 
 
-async def update_research_bm25_links(
+async def update_research_bm25_chunks(
     session: AsyncSession,
     research: Research,
-    links: list[dict],
+    chunks: list[dict],
 ) -> None:
-    research.research_result_bm25_links = links
+    research.research_result_bm25_chunks = chunks
     await session.commit()
 
 
@@ -279,21 +279,21 @@ async def update_research_embed_summary(
     await session.commit()
 
 
-async def update_research_embed_links(
+async def update_research_embed_chunks(
     session: AsyncSession,
     research: Research,
-    links: list[dict],
+    chunks: list[dict],
 ) -> None:
-    research.research_result_embed_links = links
+    research.research_result_embed_chunks = chunks
     await session.commit()
 
 
-async def update_research_rerank_links(
+async def update_research_rerank_chunks(
     session: AsyncSession,
     research: Research,
-    links: list[dict],
+    chunks: list[dict],
 ) -> None:
-    research.research_result_rerank_links = links
+    research.research_result_rerank_chunks = chunks
     await session.commit()
 
 

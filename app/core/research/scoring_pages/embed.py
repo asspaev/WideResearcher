@@ -1,14 +1,13 @@
 import math
 
 from loguru import logger
+from sqlalchemy import select
 
-from app.crud.page_summary import get_page_summary, upsert_page_embed_score
-from app.crud.research import update_research_embed_links, update_research_embed_summary, update_research_stage
-from app.crud.scrapped_page import get_scrapped_page
+from app.crud.research import update_research_embed_chunks, update_research_embed_summary, update_research_stage
+from app.models.chunk_summary import ChunkSummary
 from app.models.research import RESEARCH_STAGES
 
 from .base import ScoringPagesStepBase
-from .chunks import chunk_text
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -21,21 +20,21 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
 
 
 class EmbedScoringStep(ScoringPagesStepBase):
-    """Шаг фильтрации страниц по алгоритму Embed (косинусное сходство)."""
+    """Шаг фильтрации чанков по алгоритму Embed (косинусное сходство)."""
 
     async def execute(self) -> None:
-        """Вычисляет embed-оценки страниц и сохраняет топ-N в research_result_embed_links.
+        """Вычисляет embed-оценки чанков и сохраняет топ-N в research_result_embed_chunks.
 
         Получает эмбеддинг саммари исследования (query + direction) — если он уже
-        сохранён в research_result_embed_summary, использует кэш. Для каждой страницы
-        из research_result_bm25_links аналогично проверяет кэш в PageSummary.page_embed.
+        сохранён в research_result_embed_summary, использует кэш. Для каждого чанка
+        из research_result_bm25_chunks аналогично проверяет кэш в ChunkSummary.page_embed.
         Вычисляет косинусное сходство, сохраняет embed_score и page_embed.
-        Топ-N URL записывает в Research.research_result_embed_links.
+        Топ-N чанков записывает в Research.research_result_embed_chunks.
         """
         research = self._research
 
-        if not research.research_result_bm25_links:
-            logger.warning(f"{self._log_extra()} EmbedScoringStep: no bm25 links found, skipping")
+        if not research.research_result_bm25_chunks:
+            logger.warning(f"{self._log_extra()} EmbedScoringStep: no bm25 chunks found, skipping")
             return
 
         await update_research_stage(self._session, research, RESEARCH_STAGES["SCORING_EMBED"])
@@ -66,71 +65,54 @@ class EmbedScoringStep(ScoringPagesStepBase):
                 return
             await update_research_embed_summary(self._session, research, summary_embedding)
 
-        links: list[dict] = research.research_result_bm25_links
+        bm25_chunks: list[dict] = research.research_result_bm25_chunks
+        chunk_ids = [c["chunk_id"] for c in bm25_chunks]
 
-        scored: list[tuple[str, float]] = []
-        for link in links:
-            url: str = link["url"]
-            page = await get_scrapped_page(self._session, url)
-            if page is None or not page.page_clean_content:
-                logger.debug(f"{self._log_extra()} EmbedScoringStep: no content for {url!r}, skipping")
+        result = await self._session.execute(select(ChunkSummary).where(ChunkSummary.chunk_id.in_(chunk_ids)))
+        chunks_by_id: dict[int, ChunkSummary] = {c.chunk_id: c for c in result.scalars().all()}
+
+        scored: list[tuple[int, str, int, float]] = []
+        for item in bm25_chunks:
+            chunk_id: int = item["chunk_id"]
+            chunk = chunks_by_id.get(chunk_id)
+            if chunk is None:
+                logger.debug(f"{self._log_extra()} EmbedScoringStep: chunk_id={chunk_id} not found, skipping")
                 continue
 
-            # Проверяем кэш эмбеддинга страницы (хранится лучший чанк)
-            page_summary = await get_page_summary(self._session, url, research.research_id)
-            if page_summary is not None and page_summary.page_embed:
-                best_embedding: list[float] = page_summary.page_embed
-                best_similarity = _cosine_similarity(summary_embedding, best_embedding)
-                logger.debug(f"{self._log_extra()} EmbedScoringStep: using cached page embedding for {url!r}")
+            if chunk.page_embed:
+                embedding: list[float] = chunk.page_embed
+                logger.debug(f"{self._log_extra()} EmbedScoringStep: using cached embed for chunk_id={chunk_id}")
             else:
-                chunks = chunk_text(page.page_clean_content)
-                best_similarity = -1.0
-                best_embedding = []
-                for chunk_idx, chunk in enumerate(chunks):
-                    try:
-                        chunk_embedding = await llm.embed(
-                            chunk,
-                            session=self._session,
-                            model_id=research.model_id_embed,
-                            research_id=research.research_id,
-                            step_type="embed_chunk",
-                        )
-                    except Exception as exc:
-                        logger.error(
-                            f"{self._log_extra()} EmbedScoringStep: failed to embed chunk {chunk_idx} "
-                            f"of {url!r}: {exc}"
-                        )
-                        continue
-                    sim = _cosine_similarity(summary_embedding, chunk_embedding)
-                    if sim > best_similarity:
-                        best_similarity = sim
-                        best_embedding = chunk_embedding
-                if not best_embedding:
-                    logger.debug(f"{self._log_extra()} EmbedScoringStep: no chunks embedded for {url!r}, skipping")
+                try:
+                    embedding = await llm.embed(
+                        chunk.chunk_content,
+                        session=self._session,
+                        model_id=research.model_id_embed,
+                        research_id=research.research_id,
+                        step_type="embed_chunk",
+                    )
+                except Exception as exc:
+                    logger.error(f"{self._log_extra()} EmbedScoringStep: failed to embed chunk_id={chunk_id}: {exc}")
                     continue
-                logger.debug(
-                    f"{self._log_extra()} EmbedScoringStep: embedded {len(chunks)} chunk(s) for {url!r}, "
-                    f"best_sim={best_similarity:.3f}"
-                )
+                chunk.page_embed = embedding
 
-            score = round(max(0.0, min(1.0, best_similarity)), 3)
+            score = round(max(0.0, min(1.0, _cosine_similarity(summary_embedding, embedding))), 3)
+            chunk.embed_score = score
+            scored.append((chunk.chunk_id, chunk.page_url, chunk.chunk_index, score))
+            logger.debug(f"{self._log_extra()} EmbedScoringStep: chunk_id={chunk_id} score={score:.3f}")
 
-            try:
-                await upsert_page_embed_score(
-                    session=self._session,
-                    page_url=url,
-                    research_id=research.research_id,
-                    embed_score=score,
-                    page_embed=best_embedding,
-                )
-                scored.append((url, score))
-                logger.debug(f"{self._log_extra()} EmbedScoringStep: scored {url!r} = {score:.3f}")
-            except Exception as exc:
-                logger.error(f"{self._log_extra()} EmbedScoringStep: failed to save score for {url!r}: {exc}")
+        await self._session.commit()
 
-        top_n: int = research.settings_n_embed_pages
-        top_urls = sorted(scored, key=lambda x: x[1], reverse=True)[:top_n]
-        embed_links = [{"url": url, "embed_score": score} for url, score in top_urls]
+        top_n: int = research.settings_n_top_embed_chunks
+        top_chunks = [
+            {
+                "chunk_id": chunk_id,
+                "page_url": page_url,
+                "chunk_index": chunk_index,
+                "embed_score": score,
+            }
+            for chunk_id, page_url, chunk_index, score in sorted(scored, key=lambda x: x[3], reverse=True)[:top_n]
+        ]
 
-        await update_research_embed_links(self._session, research, embed_links)
-        logger.info(f"{self._log_extra()} EmbedScoringStep: done (scored={len(scored)}, top={len(embed_links)})")
+        await update_research_embed_chunks(self._session, research, top_chunks)
+        logger.info(f"{self._log_extra()} EmbedScoringStep: done (scored={len(scored)}, top={len(top_chunks)})")

@@ -69,10 +69,10 @@ class Research(Base):
     settings_n_vectors: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
     settings_n_search_queries: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
     settings_n_top_search_results: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
-    settings_n_top_bm25_chunks: Mapped[int] = mapped_column(Integer, default=200, server_default="200", nullable=False)
+    settings_n_top_bm25_chunks: Mapped[int] = mapped_column(Integer, default=50, server_default="50", nullable=False)
     settings_n_top_embed_chunks: Mapped[int] = mapped_column(Integer, default=30, server_default="30", nullable=False)
     settings_n_top_rerank_chunks: Mapped[int] = mapped_column(Integer, default=15, server_default="15", nullable=False)
-    settings_n_top_chunks: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
+    settings_n_top_chunks: Mapped[int] = mapped_column(Integer, default=15, server_default="15", nullable=False)
 
     # META-параметры
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
