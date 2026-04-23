@@ -1,6 +1,6 @@
 from loguru import logger
 
-from app.crud.page_summary import get_page_summaries_by_research
+# from app.crud.page_summary import get_page_summaries_by_research
 from app.crud.research import update_research_body_finish, update_research_stage
 from app.models.research import RESEARCH_STAGES
 from app.services.prompts import build_write_normal_messages
@@ -20,54 +20,54 @@ class NormalWriteStep(WriteStepBase):
         """
         # Переключаем стадию исследования на «написание статьи»
         research = self._research
-        await update_research_stage(self._session, research, RESEARCH_STAGES["WRITE"])
+        # await update_research_stage(self._session, research, RESEARCH_STAGES["WRITE"])
 
-        # Получаем LLM-клиент и загружаем суммари страниц для контекста
-        llm = await self._get_llm(research.model_id_answer)
-        if llm is None:
-            logger.error(f"{self._log_extra()} NormalWriteStep: answer model {research.model_id_answer} not found")
-            self.has_error = True
-            return
+        # # Получаем LLM-клиент и загружаем суммари страниц для контекста
+        # llm = await self._get_llm(research.model_id_answer)
+        # if llm is None:
+        #     logger.error(f"{self._log_extra()} NormalWriteStep: answer model {research.model_id_answer} not found")
+        #     self.has_error = True
+        #     return
 
-        page_summaries = await get_page_summaries_by_research(
-            self._session, research.research_id, limit=research.settings_n_top_pages
-        )
-        summaries: list[dict] = [{"url": ps.page_url, "summary": ps.page_summary} for ps in page_summaries]
+        # page_summaries = await get_page_summaries_by_research(
+        #     self._session, research.research_id, limit=research.settings_n_top_search_results
+        # )
+        # summaries: list[dict] = [{"url": ps.page_url, "summary": ps.page_summary} for ps in page_summaries]
 
-        query: str = (research.research_body_start or {}).get("query", research.research_name)
-        direction: str = research.research_direction_content or ""
+        # query: str = (research.research_body_start or {}).get("query", research.research_name)
+        # direction: str = research.research_direction_content or ""
 
-        # Пишем развёрнутый ответ в стиле Markdown
-        messages = build_write_normal_messages(
-            query=query,
-            direction=direction,
-            summaries=summaries,
-        )
+        # # Пишем развёрнутый ответ в стиле Markdown
+        # messages = build_write_normal_messages(
+        #     query=query,
+        #     direction=direction,
+        #     summaries=summaries,
+        # )
 
-        try:
-            article_text = await llm.generate(
-                messages,
-                session=self._session,
-                model_id=research.model_id_answer,
-                research_id=research.research_id,
-                step_type="write_normal",
-            )
-            logger.info(f"{self._log_extra()} NormalWriteStep: article generated ({len(article_text)} chars)")
-        except Exception as exc:
-            self.has_error = True
-            logger.exception(f"{self._log_extra()} NormalWriteStep: generation failed: {exc}")
-            return
+        # try:
+        #     article_text = await llm.generate(
+        #         messages,
+        #         session=self._session,
+        #         model_id=research.model_id_answer,
+        #         research_id=research.research_id,
+        #         step_type="write_normal",
+        #     )
+        #     logger.info(f"{self._log_extra()} NormalWriteStep: article generated ({len(article_text)} chars)")
+        # except Exception as exc:
+        #     self.has_error = True
+        #     logger.exception(f"{self._log_extra()} NormalWriteStep: generation failed: {exc}")
+        #     return
 
-        # Конвертируем Markdown в типизированные сегменты и сохраняем итог в БД
-        segments = format_as_segments(article_text)
+        # # Конвертируем Markdown в типизированные сегменты и сохраняем итог в БД
+        # segments = format_as_segments(article_text)
 
-        if segments:
-            await update_research_body_finish(
-                session=self._session,
-                research=research,
-                body_finish={"segments": segments},
-            )
-            logger.info(f"{self._log_extra()} NormalWriteStep: done ({len(segments)} segments)")
-        else:
-            self.has_error = True
-            logger.error(f"{self._log_extra()} NormalWriteStep: no segments produced")
+        # if segments:
+        #     await update_research_body_finish(
+        #         session=self._session,
+        #         research=research,
+        #         body_finish={"segments": segments},
+        #     )
+        #     logger.info(f"{self._log_extra()} NormalWriteStep: done ({len(segments)} segments)")
+        # else:
+        #     self.has_error = True
+        #     logger.error(f"{self._log_extra()} NormalWriteStep: no segments produced")
