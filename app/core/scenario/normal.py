@@ -33,7 +33,7 @@ class NormalScenario(ScenarioBase):
         self.embed_scoring_step = EmbedScoringStep(session, research)
         self.rerank_scoring_step = RerankScoringStep(session, research)
         self.summarize_step = SummarizeResearchStep(session, research)
-        # self.write_step = self.get_write_step()
+        self.write_step = self.get_write_step()
 
     async def pipeline(self):
         try:
@@ -45,6 +45,6 @@ class NormalScenario(ScenarioBase):
             await self.embed_scoring_step.execute()
             await self.rerank_scoring_step.execute()
             await self.summarize_step.execute()
-            # await self.write_step.execute()
+            await self.write_step.execute()
         except Exception:
             raise
