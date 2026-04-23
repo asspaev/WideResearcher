@@ -1,9 +1,10 @@
 from .base import ResearchStepBase
+from .chunking import ChunkingResearchStep
 from .direction import DirectionResearchStep, DirectionStepError
 from .keywords import KeywordsResearchStep
 from .scoring_pages import BM25ScoringStep, EmbedScoringStep, RerankScoringStep, ScoringPagesStepBase
 from .search import SearchResearchStep
-from .summarize import BM25SummarizeStep, SummarizeStepBase
+from .summarize import SummarizeResearchStep
 from .write import NormalWriteStep, WriteStepBase
 
 __all__ = [
@@ -14,10 +15,10 @@ __all__ = [
     "EmbedScoringStep",
     "RerankScoringStep",
     "ScoringPagesStepBase",
-    "BM25SummarizeStep",
-    "SummarizeStepBase",
+    "SummarizeResearchStep",
     "ResearchStepBase",
     "DirectionStepError",
     "WriteStepBase",
     "NormalWriteStep",
+    "ChunkingResearchStep",
 ]
