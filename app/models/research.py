@@ -62,10 +62,10 @@ class Research(Base):
     research_error_body: Mapped[str | None] = mapped_column(Text)
 
     # SETTINGS-параметры
-    settings_search_areas: Mapped[dict | None] = mapped_column(JSONB)
-    settings_exclude_search_areas: Mapped[dict | None] = mapped_column(JSONB)
+    settings_search_areas: Mapped[str | None] = mapped_column(Text)
+    settings_exclude_search_areas: Mapped[str | None] = mapped_column(Text)
     settings_n_async_parse: Mapped[int] = mapped_column(Integer, default=3, server_default="3", nullable=False)
-    settings_scenario_type: Mapped[str] = mapped_column(Text, default="normal", server_default="normal", nullable=False)
+    settings_scenario_type: Mapped[str] = mapped_column(Text, default="NORMAL", server_default="NORMAL", nullable=False)
     settings_n_vectors: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
     settings_n_search_queries: Mapped[int] = mapped_column(Integer, default=5, server_default="5", nullable=False)
     settings_n_top_search_results: Mapped[int] = mapped_column(Integer, default=10, server_default="10", nullable=False)
