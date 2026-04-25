@@ -6,6 +6,16 @@
     {% if model_embed %}<input type="hidden" name="model_embed" value="{{ model_embed }}">{% endif %}
     {% if model_reranker %}<input type="hidden" name="model_reranker" value="{{ model_reranker }}">{% endif %}
     {% if model_parent %}<input type="hidden" name="model_parent" value="{{ model_parent }}">{% endif %}
+    {% if n_async_parse is defined and n_async_parse is not none %}<input type="hidden" name="n_async_parse" value="{{ n_async_parse }}">{% endif %}
+    {% if scenario_type is defined and scenario_type %}<input type="hidden" name="scenario_type" value="{{ scenario_type }}">{% endif %}
+    {% if search_areas is defined and search_areas %}<input type="hidden" name="search_areas" value="{{ search_areas }}">{% endif %}
+    {% if exclude_search_areas is defined and exclude_search_areas %}<input type="hidden" name="exclude_search_areas" value="{{ exclude_search_areas }}">{% endif %}
+    {% if n_vectors is defined and n_vectors is not none %}<input type="hidden" name="n_vectors" value="{{ n_vectors }}">{% endif %}
+    {% if n_search_queries is defined and n_search_queries is not none %}<input type="hidden" name="n_search_queries" value="{{ n_search_queries }}">{% endif %}
+    {% if n_top_search_results is defined and n_top_search_results is not none %}<input type="hidden" name="n_top_search_results" value="{{ n_top_search_results }}">{% endif %}
+    {% if n_top_bm25_chunks is defined and n_top_bm25_chunks is not none %}<input type="hidden" name="n_top_bm25_chunks" value="{{ n_top_bm25_chunks }}">{% endif %}
+    {% if n_top_embed_chunks is defined and n_top_embed_chunks is not none %}<input type="hidden" name="n_top_embed_chunks" value="{{ n_top_embed_chunks }}">{% endif %}
+    {% if n_top_rerank_chunks is defined and n_top_rerank_chunks is not none %}<input type="hidden" name="n_top_rerank_chunks" value="{{ n_top_rerank_chunks }}">{% endif %}
     <!-- form -->
     <textarea name="prompt" placeholder="Запрос на исследование"></textarea>
     <div class="column gap-12">
