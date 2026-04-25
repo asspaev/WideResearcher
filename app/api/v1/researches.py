@@ -30,10 +30,44 @@ async def post_create_research(
     model_embed: int | None = Form(None),
     model_reranker: int | None = Form(None),
     model_parent: str = Form("none"),
+    n_async_parse: int | None = Form(None),
+    scenario_type: str | None = Form(None),
+    search_areas: str | None = Form(None),
+    exclude_search_areas: str | None = Form(None),
+    n_vectors: int | None = Form(None),
+    n_search_queries: int | None = Form(None),
+    n_top_search_results: int | None = Form(None),
+    n_top_bm25_chunks: int | None = Form(None),
+    n_top_embed_chunks: int | None = Form(None),
+    n_top_rerank_chunks: int | None = Form(None),
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
 ):
     """Создание исследования и запуск Celery-задачи"""
+    logger.debug(
+        "post_create_research params: prompt={!r}, model_answer={}, model_search={}, "
+        "model_direction={}, model_embed={}, model_reranker={}, model_parent={!r}, "
+        "n_async_parse={}, scenario_type={!r}, search_areas={!r}, exclude_search_areas={!r}, "
+        "n_vectors={}, n_search_queries={}, n_top_search_results={}, "
+        "n_top_bm25_chunks={}, n_top_embed_chunks={}, n_top_rerank_chunks={}",
+        prompt,
+        model_answer,
+        model_search,
+        model_direction,
+        model_embed,
+        model_reranker,
+        model_parent,
+        n_async_parse,
+        scenario_type,
+        search_areas,
+        exclude_search_areas,
+        n_vectors,
+        n_search_queries,
+        n_top_search_results,
+        n_top_bm25_chunks,
+        n_top_embed_chunks,
+        n_top_rerank_chunks,
+    )
     if not model_answer or not model_search or model_direction is None or model_embed is None or model_reranker is None:
         settings = await get_research_settings(user_cookie.user_id, session, get_redis_cache())
         model_answer = model_answer or settings.get("model_answer")
@@ -71,6 +105,16 @@ async def post_create_research(
         model_id_reranker=model_reranker,
         research_parent_id=research_parent_id,
         research_body_start={"prompt": research_name},
+        settings_n_async_parse=n_async_parse,
+        settings_scenario_type=scenario_type,
+        settings_search_areas=search_areas or None,
+        settings_exclude_search_areas=exclude_search_areas or None,
+        settings_n_vectors=n_vectors,
+        settings_n_search_queries=n_search_queries,
+        settings_n_top_search_results=n_top_search_results,
+        settings_n_top_bm25_chunks=n_top_bm25_chunks,
+        settings_n_top_embed_chunks=n_top_embed_chunks,
+        settings_n_top_rerank_chunks=n_top_rerank_chunks,
     )
     logger.info(f"Research created: {research.research_id} for user {user_cookie.user_id} {user_cookie.user_login}")
 
@@ -149,6 +193,16 @@ async def api_edit_new_research(
     model_embed: int | None = Form(None),
     model_reranker: int | None = Form(None),
     model_parent: str = Form("none"),
+    n_async_parse: int = Form(3),
+    scenario_type: str = Form("NORMAL"),
+    search_areas: str = Form(""),
+    exclude_search_areas: str = Form(""),
+    n_vectors: int = Form(5),
+    n_search_queries: int = Form(5),
+    n_top_search_results: int = Form(10),
+    n_top_bm25_chunks: int = Form(50),
+    n_top_embed_chunks: int = Form(30),
+    n_top_rerank_chunks: int = Form(15),
     previous_screen: str | None = Form(None),
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
@@ -161,6 +215,16 @@ async def api_edit_new_research(
         "model_embed": model_embed,
         "model_reranker": model_reranker,
         "model_parent": model_parent,
+        "n_async_parse": n_async_parse,
+        "scenario_type": scenario_type,
+        "search_areas": search_areas or None,
+        "exclude_search_areas": exclude_search_areas or None,
+        "n_vectors": n_vectors,
+        "n_search_queries": n_search_queries,
+        "n_top_search_results": n_top_search_results,
+        "n_top_bm25_chunks": n_top_bm25_chunks,
+        "n_top_embed_chunks": n_top_embed_chunks,
+        "n_top_rerank_chunks": n_top_rerank_chunks,
     }
     cache = get_redis_cache()
     await cache.set(research_settings_redis_key(user_cookie.user_id), settings, ttl=RESEARCH_SETTINGS_TTL)

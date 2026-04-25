@@ -38,7 +38,40 @@ async def create_research(
     model_id_reranker: int | None = None,
     research_parent_id: int | None = None,
     research_body_start: dict | None = None,
+    settings_n_async_parse: int | None = None,
+    settings_scenario_type: str | None = None,
+    settings_search_areas: str | None = None,
+    settings_exclude_search_areas: str | None = None,
+    settings_n_vectors: int | None = None,
+    settings_n_search_queries: int | None = None,
+    settings_n_top_search_results: int | None = None,
+    settings_n_top_bm25_chunks: int | None = None,
+    settings_n_top_embed_chunks: int | None = None,
+    settings_n_top_rerank_chunks: int | None = None,
 ) -> Research:
+    kwargs: dict = {}
+    if settings_n_async_parse is not None:
+        kwargs["settings_n_async_parse"] = settings_n_async_parse
+    if settings_scenario_type is not None:
+        kwargs["settings_scenario_type"] = settings_scenario_type
+    if settings_search_areas is not None:
+        kwargs["settings_search_areas"] = settings_search_areas
+    if settings_exclude_search_areas is not None:
+        kwargs["settings_exclude_search_areas"] = settings_exclude_search_areas
+    if settings_n_vectors is not None:
+        kwargs["settings_n_vectors"] = settings_n_vectors
+    if settings_n_search_queries is not None:
+        kwargs["settings_n_search_queries"] = settings_n_search_queries
+    if settings_n_top_search_results is not None:
+        kwargs["settings_n_top_search_results"] = settings_n_top_search_results
+    if settings_n_top_bm25_chunks is not None:
+        kwargs["settings_n_top_bm25_chunks"] = settings_n_top_bm25_chunks
+    if settings_n_top_embed_chunks is not None:
+        kwargs["settings_n_top_embed_chunks"] = settings_n_top_embed_chunks
+    if settings_n_top_rerank_chunks is not None:
+        kwargs["settings_n_top_rerank_chunks"] = settings_n_top_rerank_chunks
+        kwargs["settings_n_top_chunks"] = settings_n_top_rerank_chunks
+
     research = Research(
         user_id=user_id,
         research_status=ResearchStatus.IN_PROCESS,
@@ -52,6 +85,7 @@ async def create_research(
         model_id_reranker=model_id_reranker,
         research_parent_id=research_parent_id,
         research_body_start=research_body_start,
+        **kwargs,
     )
     session.add(research)
     await session.commit()

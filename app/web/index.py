@@ -12,7 +12,7 @@ from app.crud.research import get_next_planned_research_by_user_id
 from app.models import Research, ResearchSchedule
 from app.schemas.research import NearestResearch
 from app.schemas.user import UserCookie
-from app.services.data_fetch import get_researches_cards
+from app.services.data_fetch import get_researches_cards, research_settings_redis_key
 from app.utils.datetime import human_delta
 from app.utils.dependencies import get_user_cookie
 
@@ -52,7 +52,7 @@ async def get_index(
 
     # Проверка сохранённых настроек исследования
     cache = get_redis_cache()
-    has_settings: bool = await cache.get(f"research_settings:{user_cookie.user_id}") is not None
+    saved: dict | None = await cache.get(research_settings_redis_key(user_cookie.user_id))
 
     # Рендер главной страницы
     return templates.TemplateResponse(
@@ -63,6 +63,7 @@ async def get_index(
             "researches": researches,
             "nearest_research": nearest_research,
             "page": "index",
-            "has_settings": has_settings,
+            "has_settings": saved is not None,
+            **(saved or {}),
         },
     )

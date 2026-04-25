@@ -49,6 +49,16 @@ async def get_research_settings(
         "model_embed": default_embedding_id,
         "model_reranker": default_generative_id,
         "model_parent": "none",
+        "n_async_parse": 3,
+        "scenario_type": "NORMAL",
+        "search_areas": None,
+        "exclude_search_areas": None,
+        "n_vectors": 5,
+        "n_search_queries": 5,
+        "n_top_search_results": 10,
+        "n_top_bm25_chunks": 50,
+        "n_top_embed_chunks": 30,
+        "n_top_rerank_chunks": 15,
     }
 
 
@@ -184,14 +194,7 @@ async def get_research_detail(
             segments = body.get("segments")
 
     # Зоны поиска
-    areas = research.settings_search_areas
-    if areas:
-        if isinstance(areas, list):
-            search_areas_text = ", ".join(str(a) for a in areas)
-        else:
-            search_areas_text = str(areas)
-    else:
-        search_areas_text = None
+    search_areas_text = research.settings_search_areas or None
 
     return {
         "segments": segments,
