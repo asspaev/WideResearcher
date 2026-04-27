@@ -15,15 +15,15 @@
                     <h3 class="settings-col-title">Модели</h3>
                     <div class="column gap-12">
                         <div class="field">
-                            <select name="model_answer" class="input">
+                            <select name="model_direction" class="input">
                                 {% for model in generative_models %}
-                                <option value="{{ model.model_id }}" {% if model_answer and model.model_id==model_answer
-                                    %}selected{% endif %}>
+                                <option value="{{ model.model_id }}" {% if model_direction and
+                                    model.model_id==model_direction %}selected{% endif %}>
                                     {{ model.model_name }}
                                 </option>
                                 {% endfor %}
                             </select>
-                            <label>Модель генерации ответа</label>
+                            <label>Модель направления исследования</label>
                         </div>
                         <div class="field">
                             <select name="model_search" class="input">
@@ -35,17 +35,6 @@
                                 {% endfor %}
                             </select>
                             <label>Модель поиска информации</label>
-                        </div>
-                        <div class="field">
-                            <select name="model_direction" class="input">
-                                {% for model in generative_models %}
-                                <option value="{{ model.model_id }}" {% if model_direction and
-                                    model.model_id==model_direction %}selected{% endif %}>
-                                    {{ model.model_name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <label>Модель направления исследования</label>
                         </div>
                         <div class="field">
                             <select name="model_embed" class="input">
@@ -68,6 +57,17 @@
                                 {% endfor %}
                             </select>
                             <label>Модель реранкинга</label>
+                        </div>
+                        <div class="field">
+                            <select name="model_answer" class="input">
+                                {% for model in generative_models %}
+                                <option value="{{ model.model_id }}" {% if model_answer and model.model_id==model_answer
+                                    %}selected{% endif %}>
+                                    {{ model.model_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <label>Модель генерации ответа</label>
                         </div>
                     </div>
                 </div>
@@ -92,13 +92,14 @@
                     <div class="column gap-12">
                         <h3 class="settings-col-title">Зона поиска</h3>
                         <div class="field">
-                            <input type="text" name="search_areas" value="{{ search_areas | default('') }}"
+                            <input type="text" name="search_areas" value="{{ search_areas | default('Не ограничено') }}"
                                 placeholder="Не ограничено">
                             <label>Желательные зоны поиска</label>
                         </div>
                         <div class="field">
                             <input type="text" name="exclude_search_areas"
-                                value="{{ exclude_search_areas | default('') }}" placeholder="Не ограничено">
+                                value="{{ exclude_search_areas | default('Не ограничено') }}"
+                                placeholder="Не ограничено">
                             <label>Нежелательные зоны поиска</label>
                         </div>
                     </div>
@@ -126,14 +127,14 @@
                             <label>Количество направлений исследования</label>
                         </div>
                         <div class="field">
-                            <input type="number" name="n_search_queries" placeholder="5"
-                                value="{{ n_search_queries | default(5) }}" min="1">
-                            <label>Количество поисковых запросов</label>
-                        </div>
-                        <div class="field">
                             <input type="number" name="n_top_search_results" placeholder="10"
                                 value="{{ n_top_search_results | default(10) }}" min="1">
                             <label>Исследуемый топ поисковых запросов</label>
+                        </div>
+                        <div class="field">
+                            <input type="number" name="n_search_queries" placeholder="5"
+                                value="{{ n_search_queries | default(5) }}" min="1">
+                            <label>Количество поисковых запросов</label>
                         </div>
                         <div class="field">
                             <input type="number" name="n_top_bm25_chunks" placeholder="50"
@@ -171,11 +172,15 @@
                                 <div class="rp-bar rp-search">
                                     <span>10</span>
                                 </div>
-                                <span class="rp-mult">× </span><span class="rp-search-count">5</span>
+                                <span class="rp-mult">× </span><span class="rp-bar rp-search-count">5</span>
                             </div>
                         </div>
 
                         {% include 'includes/svg/result-divider.svg' %}
+
+                        <div class="rp-bar rp-total">
+                            <span id="rp-total-count">250</span>
+                        </div>
 
                         <div class="rp-bar rp-bm25">
                             <span>500</span>
@@ -221,6 +226,36 @@
         </form>
         {% include 'includes/popup_close.html' %}
     </div>
+    <script>
+        (function () {
+            const popup = document.getElementById('popup-overlay');
+            const getVal = (name) => parseInt(popup.querySelector(`[name="${name}"]`).value) || 0;
+            const setVal = (name, v) => { popup.querySelector(`[name="${name}"]`).value = v; };
+            const getTotal = () => parseInt(document.getElementById('rp-total-count')?.textContent) || Infinity;
+
+            const setSpan = (sel, v) => { const el = popup.querySelector(sel); if (el) el.textContent = v; };
+
+            function clamp() {
+                const total = getTotal();
+                let bm25 = Math.min(getVal('n_top_bm25_chunks'), total);
+                let embed = Math.min(getVal('n_top_embed_chunks'), bm25);
+                let rerank = Math.min(getVal('n_top_rerank_chunks'), embed);
+                setVal('n_top_bm25_chunks', bm25); setSpan('.rp-bm25 span', bm25);
+                setVal('n_top_embed_chunks', embed); setSpan('.rp-embed span', embed);
+                setVal('n_top_rerank_chunks', rerank); setSpan('.rp-reranker span', rerank);
+                const rc = popup.querySelector('#result_count'); if (rc) rc.value = rerank;
+                setSpan('.rp-source span', rerank);
+            }
+
+            ['n_top_bm25_chunks', 'n_top_embed_chunks', 'n_top_rerank_chunks'].forEach(name => {
+                popup.querySelector(`[name="${name}"]`).addEventListener('input', clamp);
+            });
+
+            ['n_vectors', 'n_search_queries', 'n_top_search_results'].forEach(name => {
+                popup.querySelector(`[name="${name}"]`).addEventListener('input', () => setTimeout(clamp, 0));
+            });
+        })();
+    </script>
 </div>
 <a hx-swap-oob="outerHTML" id="new-research-settings-btn" href="#" hx-swap="none" hx-trigger="click"
     hx-get="{{ url_for('edit_new_research') }}" hx-vals='{"previous_screen": "{{ previous_screen }}"}'
