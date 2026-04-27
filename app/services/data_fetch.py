@@ -180,6 +180,8 @@ async def get_research_detail(
     model_direction = (
         await get_model_by_id(session, research.model_id_direction) if research.model_id_direction else None
     )
+    model_embed = await get_model_by_id(session, research.model_id_embed) if research.model_id_embed else None
+    model_reranker = await get_model_by_id(session, research.model_id_reranker) if research.model_id_reranker else None
 
     # Родительское исследование
     parent = await get_research_by_id(session, research.research_parent_id) if research.research_parent_id else None
@@ -205,6 +207,8 @@ async def get_research_detail(
         "model_answer_name": model_answer.model_name if model_answer else None,
         "model_search_name": model_search.model_name if model_search else None,
         "model_direction_name": model_direction.model_name if model_direction else None,
+        "model_embed_name": model_embed.model_name if model_embed else None,
+        "model_reranker_name": model_reranker.model_name if model_reranker else None,
         "parent_version_name": parent.research_version_name if parent else None,
         "search_areas_text": search_areas_text,
     }
