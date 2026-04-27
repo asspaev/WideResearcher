@@ -1,12 +1,22 @@
 <div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
     <div id="popup" class="popup settings-new-research gap-24">
         <div class="popup-header">
+            {% if readonly %}
+            <h2>Настройки исследования</h2>
+            <p>Параметры, с которыми было запущено это исследование</p>
+            {% else %}
             <h2>Настройки нового исследования</h2>
             <p>Настройте новое исследование</p>
+            {% endif %}
         </div>
+
+        {% if not readonly %}
         <form class="column gap-24" hx-post="{{ url_for('api_edit_new_research') }}" hx-trigger="submit" hx-swap="none"
             autocomplete="off">
             <input type="hidden" name="previous_screen" value="{{ previous_screen }}">
+        {% else %}
+        <div class="column gap-24">
+        {% endif %}
 
             <div class="settings-grid">
 
@@ -15,7 +25,7 @@
                     <h3 class="settings-col-title">Модели</h3>
                     <div class="column gap-12">
                         <div class="field">
-                            <select name="model_direction" class="input">
+                            <select name="model_direction" class="input" {% if readonly %}disabled{% endif %}>
                                 {% for model in generative_models %}
                                 <option value="{{ model.model_id }}" {% if model_direction and
                                     model.model_id==model_direction %}selected{% endif %}>
@@ -26,7 +36,7 @@
                             <label>Модель направления исследования</label>
                         </div>
                         <div class="field">
-                            <select name="model_search" class="input">
+                            <select name="model_search" class="input" {% if readonly %}disabled{% endif %}>
                                 {% for model in generative_models %}
                                 <option value="{{ model.model_id }}" {% if model_search and model.model_id==model_search
                                     %}selected{% endif %}>
@@ -37,7 +47,7 @@
                             <label>Модель поиска информации</label>
                         </div>
                         <div class="field">
-                            <select name="model_embed" class="input">
+                            <select name="model_embed" class="input" {% if readonly %}disabled{% endif %}>
                                 {% for model in embedding_models %}
                                 <option value="{{ model.model_id }}" {% if model_embed and model.model_id==model_embed
                                     %}selected{% endif %}>
@@ -48,7 +58,7 @@
                             <label>Модель эмбединга</label>
                         </div>
                         <div class="field">
-                            <select name="model_reranker" class="input">
+                            <select name="model_reranker" class="input" {% if readonly %}disabled{% endif %}>
                                 {% for model in generative_models %}
                                 <option value="{{ model.model_id }}" {% if model_reranker and
                                     model.model_id==model_reranker %}selected{% endif %}>
@@ -59,7 +69,7 @@
                             <label>Модель реранкинга</label>
                         </div>
                         <div class="field">
-                            <select name="model_answer" class="input">
+                            <select name="model_answer" class="input" {% if readonly %}disabled{% endif %}>
                                 {% for model in generative_models %}
                                 <option value="{{ model.model_id }}" {% if model_answer and model.model_id==model_answer
                                     %}selected{% endif %}>
@@ -78,11 +88,11 @@
                         <h3 class="settings-col-title">Общие настройки</h3>
                         <div class="field">
                             <input type="number" name="n_async_parse" placeholder="3"
-                                value="{{ n_async_parse | default(3) }}" min="1" max="50">
+                                value="{{ n_async_parse | default(3) }}" min="1" max="50" {% if readonly %}disabled{% endif %}>
                             <label>Количество асинхронных вызовов</label>
                         </div>
                         <div class="field">
-                            <select name="scenario_type" class="input">
+                            <select name="scenario_type" class="input" {% if readonly %}disabled{% endif %}>
                                 <option value="NORMAL" {% if not scenario_type or scenario_type=='NORMAL' %}selected{%
                                     endif %}>Стандартный</option>
                             </select>
@@ -92,23 +102,23 @@
                     <div class="column gap-12">
                         <h3 class="settings-col-title">Зона поиска</h3>
                         <div class="field">
-                            <input type="text" name="search_areas" value="{{ search_areas | default('Не ограничено') }}"
-                                placeholder="Не ограничено">
+                            <input type="text" name="search_areas"
+                                value="{{ search_areas | default('Не ограничено') if not readonly else (search_areas or 'Не ограничено') }}"
+                                placeholder="Не ограничено" {% if readonly %}disabled{% endif %}>
                             <label>Желательные зоны поиска</label>
                         </div>
                         <div class="field">
                             <input type="text" name="exclude_search_areas"
-                                value="{{ exclude_search_areas | default('Не ограничено') }}"
-                                placeholder="Не ограничено">
+                                value="{{ exclude_search_areas | default('Не ограничено') if not readonly else (exclude_search_areas or 'Не ограничено') }}"
+                                placeholder="Не ограничено" {% if readonly %}disabled{% endif %}>
                             <label>Нежелательные зоны поиска</label>
                         </div>
                     </div>
                     <div class="column gap-12">
                         <h3 class="settings-col-title">Наследование</h3>
                         <div class="field">
-                            <select name="model_parent" class="input">
-                                <option value="none" {% if not model_parent or model_parent=="none" %}selected{% endif
-                                    %}>
+                            <select name="model_parent" class="input" {% if readonly %}disabled{% endif %}>
+                                <option value="none" {% if not model_parent or model_parent=="none" %}selected{% endif %}>
                                     Не наследовать
                                 </option>
                             </select>
@@ -123,32 +133,32 @@
                     <div class="column gap-12">
                         <div class="field">
                             <input type="number" name="n_vectors" placeholder="5" value="{{ n_vectors | default(5) }}"
-                                min="1">
+                                min="1" {% if readonly %}disabled{% endif %}>
                             <label>Количество направлений исследования</label>
                         </div>
                         <div class="field">
                             <input type="number" name="n_top_search_results" placeholder="10"
-                                value="{{ n_top_search_results | default(10) }}" min="1">
+                                value="{{ n_top_search_results | default(10) }}" min="1" {% if readonly %}disabled{% endif %}>
                             <label>Исследуемый топ поисковых запросов</label>
                         </div>
                         <div class="field">
                             <input type="number" name="n_search_queries" placeholder="5"
-                                value="{{ n_search_queries | default(5) }}" min="1">
+                                value="{{ n_search_queries | default(5) }}" min="1" {% if readonly %}disabled{% endif %}>
                             <label>Количество поисковых запросов</label>
                         </div>
                         <div class="field">
                             <input type="number" name="n_top_bm25_chunks" placeholder="50"
-                                value="{{ n_top_bm25_chunks | default(50) }}" min="1">
+                                value="{{ n_top_bm25_chunks | default(50) }}" min="1" {% if readonly %}disabled{% endif %}>
                             <label>Исследуемый топ алгоритма BM25</label>
                         </div>
                         <div class="field">
                             <input type="number" name="n_top_embed_chunks" placeholder="30"
-                                value="{{ n_top_embed_chunks | default(30) }}" min="1">
+                                value="{{ n_top_embed_chunks | default(30) }}" min="1" {% if readonly %}disabled{% endif %}>
                             <label>Исследуемый топ эмбеддинг модели</label>
                         </div>
                         <div class="field">
                             <input type="number" name="n_top_rerank_chunks" placeholder="15"
-                                value="{{ n_top_rerank_chunks | default(15) }}" min="1">
+                                value="{{ n_top_rerank_chunks | default(15) }}" min="1" {% if readonly %}disabled{% endif %}>
                             <label>Исследуемый топ реранкинг моделей</label>
                         </div>
                         <div class="field">
@@ -165,33 +175,33 @@
                     <div class="research-preview">
                         <div class="rp-stage">
                             <div class="rp-bar rp-direction">
-                                <span>10</span>
+                                <span>{{ n_vectors | default(5) }}</span>
                             </div>
                             <span class="rp-mult">×</span>
                             <div class="rp-row gap-8">
                                 <div class="rp-bar rp-search">
-                                    <span>10</span>
+                                    <span>{{ n_top_search_results | default(10) }}</span>
                                 </div>
-                                <span class="rp-mult">× </span><span class="rp-bar rp-search-count">5</span>
+                                <span class="rp-mult">× </span><span class="rp-bar rp-search-count">{{ n_search_queries | default(5) }}</span>
                             </div>
                         </div>
 
                         {% include 'includes/svg/result-divider.svg' %}
 
                         <div class="rp-bar rp-total">
-                            <span id="rp-total-count">250</span>
+                            <span id="rp-total-count">{{ (n_vectors | default(5)) * (n_top_search_results | default(10)) * (n_search_queries | default(5)) }}</span>
                         </div>
 
                         <div class="rp-bar rp-bm25">
-                            <span>500</span>
+                            <span>{{ n_top_bm25_chunks | default(50) }}</span>
                         </div>
                         <div class="rp-bar rp-embed">
-                            <span>50</span>
+                            <span>{{ n_top_embed_chunks | default(30) }}</span>
                         </div>
                         <div class="rp-group">
                             <div class="rp-reranker-wrapper">
                                 <div class="rp-bar rp-reranker">
-                                    <span>30</span>
+                                    <span>{{ n_top_rerank_chunks | default(15) }}</span>
                                 </div>
                                 <div class="rp-result-divider">
                                     {% include 'includes/svg/result-divider.svg' %}
@@ -200,7 +210,7 @@
                         </div>
 
                         <div class="rp-bar rp-source">
-                            <span>15</span>
+                            <span>{{ n_top_rerank_chunks | default(15) }}</span>
                         </div>
                     </div>
                 </div>
@@ -208,6 +218,11 @@
             </div>
 
             <div class="buttons column gap-12">
+                {% if readonly %}
+                <a href="#" hx-get="{{ url_for('hide') }}" hx-swap="none" class="button primary solid">
+                    Закрыть
+                </a>
+                {% else %}
                 <button class="primary solid">
                     Сохранить настройки
                 </button>
@@ -222,41 +237,24 @@
                         Отмена
                     </a>
                 </div>
+                {% endif %}
             </div>
+
+        {% if not readonly %}
         </form>
+        {% else %}
+        </div>
+        {% endif %}
+
         {% include 'includes/popup_close.html' %}
     </div>
-    <script>
-        (function () {
-            const popup = document.getElementById('popup-overlay');
-            const getVal = (name) => parseInt(popup.querySelector(`[name="${name}"]`).value) || 0;
-            const setVal = (name, v) => { popup.querySelector(`[name="${name}"]`).value = v; };
-            const getTotal = () => parseInt(document.getElementById('rp-total-count')?.textContent) || Infinity;
 
-            const setSpan = (sel, v) => { const el = popup.querySelector(sel); if (el) el.textContent = v; };
-
-            function clamp() {
-                const total = getTotal();
-                let bm25 = Math.min(getVal('n_top_bm25_chunks'), total);
-                let embed = Math.min(getVal('n_top_embed_chunks'), bm25);
-                let rerank = Math.min(getVal('n_top_rerank_chunks'), embed);
-                setVal('n_top_bm25_chunks', bm25); setSpan('.rp-bm25 span', bm25);
-                setVal('n_top_embed_chunks', embed); setSpan('.rp-embed span', embed);
-                setVal('n_top_rerank_chunks', rerank); setSpan('.rp-reranker span', rerank);
-                const rc = popup.querySelector('#result_count'); if (rc) rc.value = rerank;
-                setSpan('.rp-source span', rerank);
-            }
-
-            ['n_top_bm25_chunks', 'n_top_embed_chunks', 'n_top_rerank_chunks'].forEach(name => {
-                popup.querySelector(`[name="${name}"]`).addEventListener('input', clamp);
-            });
-
-            ['n_vectors', 'n_search_queries', 'n_top_search_results'].forEach(name => {
-                popup.querySelector(`[name="${name}"]`).addEventListener('input', () => setTimeout(clamp, 0));
-            });
-        })();
-    </script>
+    {% if not readonly %}
+    <script src="{{ url_for('static', path='js/research_settings.js') }}"></script>
+    {% endif %}
 </div>
+
+{% if not readonly %}
 <a hx-swap-oob="outerHTML" id="new-research-settings-btn" href="#" hx-swap="none" hx-trigger="click"
     hx-get="{{ url_for('edit_new_research') }}" hx-vals='{"previous_screen": "{{ previous_screen }}"}'
     class="button border-icon{% if has_settings %} active{% endif %}">
@@ -265,3 +263,4 @@
     {% set class = "color-white-default" %}
     {% include 'includes/svg/settings.svg' %}
 </a>
+{% endif %}

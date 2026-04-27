@@ -7,7 +7,7 @@ from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.model import get_model_by_id, get_models_by_user_id
-from app.crud.research import get_research_by_id
+from app.crud.research import get_research_by_id, get_research_by_id_and_user_id
 from app.models import Model, Research
 from app.schemas.user import UserCookie
 from app.services.data_fetch import research_settings_redis_key
@@ -85,9 +85,10 @@ async def get_popup_edit_new_research(
         saved = raw or {}
 
     return templates.TemplateResponse(
-        "includes/popups/edit_new_research.html",
+        "includes/popups/research_settings.html",
         {
             "request": request,
+            "readonly": False,
             "generative_models": generative_models,
             "embedding_models": embedding_models,
             "previous_screen": previous_screen,
@@ -126,6 +127,46 @@ async def get_edit_model(
         {
             "request": request,
             "model": model,
+        },
+    )
+
+
+@router.get("/researches/{research_id}/settings", name="view_research_settings")
+async def get_view_research_settings(
+    request: Request,
+    research_id: int,
+    session: AsyncSession = Depends(get_session),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
+    """Рендер всплывающего окна просмотра настроек исследования (только чтение)"""
+    research: Research | None = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+
+    models: list[Model] = await get_models_by_user_id(session, user_cookie.user_id)
+    generative_models = [m for m in models if m.model_type == "generative"]
+    embedding_models = [m for m in models if m.model_type == "embedding"]
+
+    return templates.TemplateResponse(
+        "includes/popups/research_settings.html",
+        {
+            "request": request,
+            "readonly": True,
+            "generative_models": generative_models,
+            "embedding_models": embedding_models,
+            "model_direction": research.model_id_direction if research else None,
+            "model_search": research.model_id_search if research else None,
+            "model_embed": research.model_id_embed if research else None,
+            "model_reranker": research.model_id_reranker if research else None,
+            "model_answer": research.model_id_answer if research else None,
+            "n_async_parse": research.settings_n_async_parse if research else None,
+            "scenario_type": research.settings_scenario_type if research else None,
+            "search_areas": research.settings_search_areas if research else None,
+            "exclude_search_areas": research.settings_exclude_search_areas if research else None,
+            "n_vectors": research.settings_n_vectors if research else None,
+            "n_top_search_results": research.settings_n_top_search_results if research else None,
+            "n_search_queries": research.settings_n_search_queries if research else None,
+            "n_top_bm25_chunks": research.settings_n_top_bm25_chunks if research else None,
+            "n_top_embed_chunks": research.settings_n_top_embed_chunks if research else None,
+            "n_top_rerank_chunks": research.settings_n_top_rerank_chunks if research else None,
         },
     )
 
