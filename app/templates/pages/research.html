@@ -132,20 +132,12 @@
 
                 <div class="b-1 p-32 research-block">
                     <h3>Информация об исследовании</h3>
-                    <div class="research-property-block">
-                        <strong>Зона поиска</strong>
-                        {% if search_areas_text %}
-                        <p>{{ search_areas_text }}</p>
-                        {% else %}
-                        <p>Зона поиска не ограничена</p>
-                        {% endif %}
-                    </div>
                     <div class="research-models-block">
                         <h4>Выбранные модели</h4>
-                        {% if model_answer_name %}
+                        {% if model_direction_name %}
                         <div class="research-property-item">
-                            <p>{{ model_answer_name }}</p>
-                            <span>Модель генерации ответа</span>
+                            <p>{{ model_direction_name }}</p>
+                            <span>Модель направления исследования</span>
                         </div>
                         {% endif %}
                         {% if model_search_name %}
@@ -154,10 +146,22 @@
                             <span>Модель поиска информации</span>
                         </div>
                         {% endif %}
-                        {% if model_direction_name %}
+                        {% if model_embed_name %}
                         <div class="research-property-item">
-                            <p>{{ model_direction_name }}</p>
-                            <span>Модель направления исследования</span>
+                            <p>{{ model_embed_name }}</p>
+                            <span>Модель эмбединга</span>
+                        </div>
+                        {% endif %}
+                        {% if model_reranker_name %}
+                        <div class="research-property-item">
+                            <p>{{ model_reranker_name }}</p>
+                            <span>Модель реранкинга</span>
+                        </div>
+                        {% endif %}
+                        {% if model_answer_name %}
+                        <div class="research-property-item">
+                            <p>{{ model_answer_name }}</p>
+                            <span>Модель генерации ответа</span>
                         </div>
                         {% endif %}
                     </div>
@@ -167,6 +171,11 @@
                         <p>{{ parent_version_name }}</p>
                     </div>
                     {% endif %}
+                    <button class="button text-hint stroke"
+                        hx-get="{{ url_for('view_research_settings', research_id=research.research_id) }}"
+                        hx-swap="none">
+                        Посмотреть все настройки
+                    </button>
                 </div>
 
                 <div class="b-1 p-32 research-block">
