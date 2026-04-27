@@ -16,7 +16,6 @@
         popup._rpInited = true;
 
         var form = popup.querySelector('form');
-        if (!form) return;
 
         function updateBarWidths() {
             var total = parseInt(popup.querySelector('#rp-total-count')?.textContent) || 0;
@@ -45,46 +44,50 @@
         }
 
         function syncPreviews() {
-            var rerankInput = form.querySelector('[name="n_top_rerank_chunks"]');
-            var resultCount = form.querySelector('#result_count');
-            if (rerankInput && resultCount) {
-                resultCount.value = rerankInput.value || rerankInput.placeholder;
-            }
-            MAPPINGS.forEach(function (m) {
-                var spanEl = popup.querySelector(m.spanSel);
-                var inputEl = form.querySelector(m.inputSel);
-                if (spanEl && inputEl) {
-                    spanEl.textContent = inputEl.value || inputEl.placeholder;
+            if (form) {
+                var rerankInput = form.querySelector('[name="n_top_rerank_chunks"]');
+                var resultCount = form.querySelector('#result_count');
+                if (rerankInput && resultCount) {
+                    resultCount.value = rerankInput.value || rerankInput.placeholder;
                 }
-            });
-            var totalEl = popup.querySelector('.rp-total span');
-            if (totalEl) {
-                var vIn = form.querySelector('[name="n_vectors"]');
-                var qIn = form.querySelector('[name="n_search_queries"]');
-                var tIn = form.querySelector('[name="n_top_search_results"]');
-                var v = parseInt((vIn && (vIn.value || vIn.placeholder)) || 0);
-                var q = parseInt((qIn && (qIn.value || qIn.placeholder)) || 0);
-                var t = parseInt((tIn && (tIn.value || tIn.placeholder)) || 0);
-                totalEl.textContent = v * q * t;
+                MAPPINGS.forEach(function (m) {
+                    var spanEl = popup.querySelector(m.spanSel);
+                    var inputEl = form.querySelector(m.inputSel);
+                    if (spanEl && inputEl) {
+                        spanEl.textContent = inputEl.value || inputEl.placeholder;
+                    }
+                });
+                var totalEl = popup.querySelector('.rp-total span');
+                if (totalEl) {
+                    var vIn = form.querySelector('[name="n_vectors"]');
+                    var qIn = form.querySelector('[name="n_search_queries"]');
+                    var tIn = form.querySelector('[name="n_top_search_results"]');
+                    var v = parseInt((vIn && (vIn.value || vIn.placeholder)) || 0);
+                    var q = parseInt((qIn && (qIn.value || qIn.placeholder)) || 0);
+                    var t = parseInt((tIn && (tIn.value || tIn.placeholder)) || 0);
+                    totalEl.textContent = v * q * t;
+                }
             }
             updateBarWidths();
         }
 
-        ['n_vectors', 'n_top_search_results', 'n_search_queries',
-         'n_top_bm25_chunks', 'n_top_embed_chunks', 'n_top_rerank_chunks'
-        ].forEach(function (name) {
-            var el = form.querySelector('[name="' + name + '"]');
-            if (el) el.addEventListener('input', syncPreviews);
-        });
+        if (form) {
+            ['n_vectors', 'n_top_search_results', 'n_search_queries',
+             'n_top_bm25_chunks', 'n_top_embed_chunks', 'n_top_rerank_chunks'
+            ].forEach(function (name) {
+                var el = form.querySelector('[name="' + name + '"]');
+                if (el) el.addEventListener('input', syncPreviews);
+            });
 
-        MAPPINGS.forEach(function (m) {
-            var hoverEl = popup.querySelector(m.hoverSel);
-            var inputEl = form.querySelector(m.inputSel);
-            if (hoverEl && inputEl) {
-                hoverEl.addEventListener('mouseenter', function () { inputEl.classList.add('rp-highlighted'); });
-                hoverEl.addEventListener('mouseleave', function () { inputEl.classList.remove('rp-highlighted'); });
-            }
-        });
+            MAPPINGS.forEach(function (m) {
+                var hoverEl = popup.querySelector(m.hoverSel);
+                var inputEl = form.querySelector(m.inputSel);
+                if (hoverEl && inputEl) {
+                    hoverEl.addEventListener('mouseenter', function () { inputEl.classList.add('rp-highlighted'); });
+                    hoverEl.addEventListener('mouseleave', function () { inputEl.classList.remove('rp-highlighted'); });
+                }
+            });
+        }
 
         syncPreviews();
     }
