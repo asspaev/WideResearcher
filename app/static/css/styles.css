@@ -1769,8 +1769,8 @@ h4 {
 }
 
 .rp-highlighted {
-    outline: 2px solid var(--color-primary-default) !important;
-    outline-offset: 2px;
+    border: 1px solid var(--color-primary-default) !important;
+    transition: 0s all;
 }
 
 .rp-total {
