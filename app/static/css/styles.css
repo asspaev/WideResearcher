@@ -1592,7 +1592,6 @@ h4 {
 
 .settings-col--spaced {
     justify-content: space-between;
-    gap: 0;
 }
 
 .settings-col-title {
@@ -1689,7 +1688,7 @@ h4 {
     justify-content: center;
     border-radius: 4px;
     font-size: 13px;
-    height: 52px;
+    height: 42px;
     min-width: 52px;
     font-weight: 600;
     padding: 6px 10px;
