@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.research.write.base import WriteStepBase
 from app.core.research.write.normal import NormalWriteStep
+from app.core.research_stages import STAGE_ORDER
+from app.core.research_timers import save_stage_start
 from app.crud.research import update_research_error, update_research_status
 from app.models.research import Research, ResearchStatus
 
@@ -27,8 +29,18 @@ class ScenarioBase(ABC):
         self.research = research
         self.prompt = prompt
 
-    async def launch(self):
+    def _should_skip_stage(self, stage_name: str) -> bool:
+        """Возвращает True если стадия уже пройдена и её можно пропустить при возобновлении."""
+        current = self.research.research_stage
+        try:
+            return STAGE_ORDER.index(stage_name) < STAGE_ORDER.index(current)
+        except ValueError:
+            return False
+
+    async def launch(self, resume: bool = False):
         """Метод для запуска сценария исследования"""
+        if not resume:
+            await save_stage_start(self.research.research_id, "LAUNCH")
         try:
             await self.pipeline()
             await update_research_status(self.session, self.research, ResearchStatus.COMPLETE)

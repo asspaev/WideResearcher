@@ -37,14 +37,23 @@ class NormalScenario(ScenarioBase):
 
     async def pipeline(self):
         try:
-            await self.direction_step.execute()
-            await self.keywords_step.execute()
-            await self.search_step.execute()
-            await self.chunking_step.execute()
-            await self.bm25_scoring_step.execute()
-            await self.embed_scoring_step.execute()
-            await self.rerank_scoring_step.execute()
-            await self.summarize_step.execute()
-            await self.write_step.execute()
+            if not self._should_skip_stage("DIRECTION"):
+                await self.direction_step.execute()
+            if not self._should_skip_stage("KEYWORDS"):
+                await self.keywords_step.execute()
+            if not self._should_skip_stage("SEARCH"):
+                await self.search_step.execute()
+            if not self._should_skip_stage("SCRAPE"):
+                await self.chunking_step.execute()
+            if not self._should_skip_stage("SCORING_BM25"):
+                await self.bm25_scoring_step.execute()
+            if not self._should_skip_stage("SCORING_EMBED"):
+                await self.embed_scoring_step.execute()
+            if not self._should_skip_stage("SCORING_RERANK"):
+                await self.rerank_scoring_step.execute()
+            if not self._should_skip_stage("SUMMARIZE"):
+                await self.summarize_step.execute()
+            if not self._should_skip_stage("WRITE"):
+                await self.write_step.execute()
         except Exception:
             raise

@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.research_stages import RESEARCH_STAGES
 from app.core.scenario.base import ScenarioBase
 from app.core.scenario.normal import NormalScenario
 from app.models.research import Research
@@ -31,4 +32,5 @@ async def start_research(session: AsyncSession, research: Research) -> None:
         prompt=research.research_body_start.get("prompt", ""),
     )
 
-    await scenario.launch()
+    resume = research.research_stage != RESEARCH_STAGES["LAUNCH"]
+    await scenario.launch(resume=resume)

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.research_timers import save_stage_start
 from app.models import Research, ResearchSchedule
 from app.models.research import RESEARCH_STAGES, ResearchStatus
 from app.models.research_schedule import ScheduleStatus
@@ -128,6 +129,7 @@ async def update_research_stage(
 ) -> None:
     research.research_stage = stage
     await session.commit()
+    await save_stage_start(research.research_id, stage)
 
 
 async def update_research_status(
@@ -339,3 +341,15 @@ async def update_research_error(
     research.research_status = ResearchStatus.ERROR
     research.research_error_body = error_body
     await session.commit()
+
+
+async def get_stale_in_process_researches(session: AsyncSession) -> list[Research]:
+    """Возвращает исследования со статусом IN_PROCESS, которые не завершились нормально."""
+    terminal_stages = {RESEARCH_STAGES["DONE"]}
+    stmt = select(Research).where(
+        Research.research_status == ResearchStatus.IN_PROCESS,
+        Research.research_stage.notin_(terminal_stages),
+        Research.archived_at.is_(None),
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
