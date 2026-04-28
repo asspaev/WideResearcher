@@ -5,22 +5,9 @@ from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import ENUM, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
+from app.core.research_stages import RESEARCH_STAGES
 
-RESEARCH_STAGES: dict[str, str] = {
-    "LAUNCH": "LAUNCH",
-    "DIRECTION": "DIRECTION",
-    "KEYWORDS": "KEYWORDS",
-    "SEARCH": "SEARCH",
-    "SCRAPE": "SCRAPE",
-    "SCORING_BM25": "SCORING_BM25",
-    "SCORING_EMBED": "SCORING_EMBED",
-    "SCORING_RERANK": "SCORING_RERANK",
-    "SUMMARIZE": "SUMMARIZE",
-    "STRUCTURE": "STRUCTURE",
-    "WRITE": "WRITE",
-    "DONE": "DONE",
-}
+from .base import Base
 
 
 class ResearchStatus(enum.Enum):
