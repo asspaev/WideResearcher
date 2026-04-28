@@ -53,6 +53,7 @@ class AppConfig(BaseModel):
     fast: bool = False
     llm_timeout: float = 3600.0
     bm25_chunk_size: int = 500
+    ws_research_check_status: int = 3
 
 
 class AuthConfig(BaseModel):
