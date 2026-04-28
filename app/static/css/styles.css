@@ -1782,3 +1782,160 @@ h4 {
 .rp-bar.rp-search-count {
     border: var(--color-white-default) 1px solid;
 }
+
+/* ===== Research Status Block ===== */
+
+.research-status-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.research-stages-wrap {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    max-height: 200px;
+}
+
+.research-stages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+}
+
+.research-stages-fade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--color-block-1-default));
+    pointer-events: none;
+}
+
+.rs-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+}
+
+.rs-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+.rs-icon--spin svg {
+    animation: rs-spin 2s linear infinite;
+}
+
+@keyframes rs-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.rs-item--active {
+    font-size: 16px;
+    color: var(--color-text-hint);
+    font-weight: 500;
+}
+
+.rs-item--done {
+    font-size: 15px;
+    color: var(--color-text-placeholder);
+}
+
+.rs-item--depth-1 {
+    font-size: 14.5px;
+    opacity: 0.8;
+}
+
+.rs-item--depth-2 {
+    font-size: 14px;
+    opacity: 0.65;
+}
+
+.rs-item--depth-3 {
+    font-size: 13.5px;
+    opacity: 0.5;
+}
+
+.rs-item--depth-4 {
+    font-size: 13px;
+    opacity: 0.35;
+}
+
+.rs-item--error {
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rs-label {
+    flex-shrink: 0;
+}
+
+.rs-time {
+    color: var(--color-input-stroke);
+    font-size: 0.85em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.rs-error-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-warning-default);
+}
+
+.rs-error-content .rs-icon {
+    margin-right: 2px;
+}
+
+.rs-error-text {
+    font-size: 14px;
+    opacity: 0.8;
+    text-align: center;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--color-warning-default);
+}
+
+.research-prompt-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.research-prompt-label {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-white-default);
+}
+
+.research-prompt-text {
+    background: var(--color-input-default);
+    border: 1px solid var(--color-input-stroke);
+    border-radius: var(--corner-normal);
+    padding: 16px 32px;
+    color: var(--color-text-hint);
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
