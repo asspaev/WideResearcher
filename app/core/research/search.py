@@ -1,6 +1,8 @@
 """Шаг поиска: SearXNG → скрейпинг → очистка HTML."""
 
 import asyncio
+import re
+from urllib.parse import urlparse
 
 import trafilatura
 from loguru import logger
@@ -17,6 +19,38 @@ from .base import ResearchStepBase
 
 CONSECUTIVE_ERRORS_LIMIT = 3
 _BINARY_EXTENSIONS = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".tar", ".gz", ".rar")
+_DOMAIN_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}$")
+
+
+def _parse_areas(areas_str: str | None) -> tuple[list[str], list[str]]:
+    """Разбирает строку с источниками на конкретные URL и домены.
+
+    Args:
+        areas_str: Строка вида "https://site.com/path, domain.com, слово" (через запятую).
+
+    Returns:
+        Кортеж (specific_urls, domains): конкретные страницы и домены для site:-фильтра.
+    """
+    if not areas_str:
+        return [], []
+
+    specific_urls: list[str] = []
+    domains: list[str] = []
+
+    for raw in areas_str.split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        if item.startswith(("http://", "https://")):
+            parsed = urlparse(item)
+            if parsed.path.rstrip("/"):
+                specific_urls.append(item)
+            else:
+                domains.append(parsed.netloc)
+        elif _DOMAIN_RE.match(item):
+            domains.append(item)
+
+    return specific_urls, domains
 
 
 class SearchResearchStep(ResearchStepBase):
@@ -58,15 +92,33 @@ class SearchResearchStep(ResearchStepBase):
         seen: set[str] = set()
         consecutive_errors = 0
 
+        search_specific, search_domains = _parse_areas(self._research.settings_search_areas)
+        _, exclude_domains = _parse_areas(self._research.settings_exclude_search_areas)
+
+        for url in search_specific:
+            if url not in seen:
+                seen.add(url)
+                urls.append(url)
+
+        site_include = " OR ".join(f"site:{d}" for d in search_domains)
+        site_exclude = " ".join(f"-site:{d}" for d in exclude_domains)
+
         for keyword in keywords:
+            query = keyword
+            if site_include:
+                query = f"{query} ({site_include})"
+            if site_exclude:
+                query = f"{query} {site_exclude}"
             try:
-                results = await client.search(keyword, n_results=self._research.settings_n_top_search_results)
+                results = await client.search(query, n_results=self._research.settings_n_top_search_results)
                 consecutive_errors = 0
                 for r in results:
                     if r.url not in seen:
                         seen.add(r.url)
                         urls.append(r.url)
-                logger.debug(f"{self._log_extra()} SearchResearchStep: keyword={keyword!r} → {len(results)} results")
+                logger.debug(
+                    f"{self._log_extra()} SearchResearchStep: keyword={keyword!r} query={query!r} → {len(results)} results"
+                )
             except Exception as exc:
                 consecutive_errors += 1
                 logger.error(
