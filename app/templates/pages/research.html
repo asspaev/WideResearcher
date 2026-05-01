@@ -280,6 +280,11 @@
                         hx-swap="none">
                         Посмотреть все настройки
                     </button>
+                    <button class="button text-hint stroke"
+                        hx-get="{{ url_for('view_research_prompt', research_id=research.research_id) }}"
+                        hx-swap="none">
+                        Посмотреть промпт
+                    </button>
                 </div>
 
                 <div class="b-1 p-32 research-block">

@@ -171,6 +171,27 @@ async def get_view_research_settings(
     )
 
 
+@router.get("/researches/{research_id}/prompt", name="view_research_prompt")
+async def get_view_research_prompt(
+    request: Request,
+    research_id: int,
+    session: AsyncSession = Depends(get_session),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
+    """Рендер всплывающего окна с первоначальным промптом исследования"""
+    research: Research | None = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    prompt = ""
+    if research and research.research_body_start:
+        prompt = research.research_body_start.get("query", "")
+    return templates.TemplateResponse(
+        "includes/popups/view_research_prompt.html",
+        {
+            "request": request,
+            "prompt": prompt,
+        },
+    )
+
+
 @router.get("/researches/{research_id}/edit", name="edit_research")
 async def get_edit_research(
     request: Request,

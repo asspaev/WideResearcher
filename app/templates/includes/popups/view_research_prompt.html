@@ -1,0 +1,18 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup new-model gap-24">
+        <div class="popup-header">
+            <h2>Промпт исследования</h2>
+            <p>Первоначальный запрос, с которым было запущено это исследование</p>
+        </div>
+        <div class="column gap-24">
+            <div class="research-prompt-card">
+                <div class="research-prompt-text">{{ prompt }}</div>
+            </div>
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" hx-swap="none"
+                class="button text-hint stroke">
+                Закрыть
+            </a>
+        </div>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>
