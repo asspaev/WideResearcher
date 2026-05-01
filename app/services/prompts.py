@@ -371,3 +371,58 @@ def build_write_normal_messages(
         {"role": "system", "content": WRITE_NORMAL_SYSTEM},
         {"role": "user", "content": user_content},
     ]
+
+
+WRITE_QUESTION_SYSTEM = """\
+Ты — эксперт-аналитик. Твоя задача — дать краткий, точный и ёмкий ответ на вопрос \
+на основе предоставленных материалов.
+
+Правила форматирования:
+- Всегда отвечай на языке исходного запроса.
+- Ответ ОБЯЗАТЕЛЬНО начинается с главного заголовка уровня # (например: # Ответ на вопрос).
+- Основной текст — 1–3 связных абзаца без лишней воды.
+- Не используй маркированные списки без крайней необходимости.
+- Не добавляй вводных фраз вроде «Конечно!» или «Вот ответ:».
+
+Правила содержания:
+- Опирайся на предоставленные саммари источников — не придумывай факты.
+- Отвечай по существу: ответ должен быть исчерпывающим, но кратким.\
+"""
+
+WRITE_QUESTION_USER = """\
+## Вопрос
+{query}
+
+## Саммари источников (JSON)
+{summaries_json}
+
+## Задача
+Дай краткий и точный ответ на вопрос, опираясь на саммари источников. \
+Ответ — 1–3 абзаца.\
+"""
+
+
+def build_write_question_messages(
+    query: str,
+    summaries: list[dict],
+) -> list[dict]:
+    """Формирует список сообщений для написания краткого ответа на вопрос.
+
+    Args:
+        query: Вопрос пользователя.
+        summaries: Список словарей с ключами 'url' и 'summary'.
+
+    Returns:
+        Список сообщений в формате OpenAI Chat для передачи в LLMClient.generate().
+    """
+    import json as _json
+
+    summaries_json = _json.dumps(summaries, ensure_ascii=False, indent=2)
+    user_content = WRITE_QUESTION_USER.format(
+        query=query,
+        summaries_json=summaries_json,
+    )
+    return [
+        {"role": "system", "content": WRITE_QUESTION_SYSTEM},
+        {"role": "user", "content": user_content},
+    ]

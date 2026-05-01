@@ -12,6 +12,7 @@ from app.models.research import Research, ResearchStatus
 
 WRITE_MAP: dict[str, type[WriteStepBase]] = {
     "NORMAL": StandardWriteStep,
+    "QUESTION": StandardWriteStep,
 }
 
 

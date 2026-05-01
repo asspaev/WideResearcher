@@ -3,10 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.research_stages import RESEARCH_STAGES
 from app.core.scenario.base import ScenarioBase
 from app.core.scenario.normal import NormalScenario
+from app.core.scenario.question import QuestionScenario
 from app.models.research import Research
 
 SCENARIO_MAP: dict[str, type[ScenarioBase]] = {
     "NORMAL": NormalScenario,
+    "QUESTION": QuestionScenario,
 }
 
 

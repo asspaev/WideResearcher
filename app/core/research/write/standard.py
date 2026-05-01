@@ -4,7 +4,7 @@ from sqlalchemy import select
 from app.crud.research import update_research_body_finish, update_research_stage
 from app.models.chunk_summary import ChunkSummary
 from app.models.research import RESEARCH_STAGES
-from app.services.prompts import build_write_normal_messages
+from app.services.prompts import build_write_normal_messages, build_write_question_messages
 
 from .base import WriteStepBase
 from .segments import format_as_segments
@@ -45,11 +45,20 @@ class StandardWriteStep(WriteStepBase):
         query: str = (research.research_body_start or {}).get("query", research.research_name)
         direction: str = research.research_direction_content or ""
 
-        messages = build_write_normal_messages(
-            query=query,
-            direction=direction,
-            summaries=summaries,
-        )
+        scenario_type = (research.settings_scenario_type or "NORMAL").upper()
+        if scenario_type == "QUESTION":
+            messages = build_write_question_messages(
+                query=query,
+                summaries=summaries,
+            )
+            step_type = "write_question"
+        else:
+            messages = build_write_normal_messages(
+                query=query,
+                direction=direction,
+                summaries=summaries,
+            )
+            step_type = "write_normal"
 
         try:
             article_text = await llm.generate(
@@ -57,7 +66,7 @@ class StandardWriteStep(WriteStepBase):
                 session=self._session,
                 model_id=research.model_id_answer,
                 research_id=research.research_id,
-                step_type="write_normal",
+                step_type=step_type,
             )
             logger.info(f"{self._log_extra()} StandardWriteStep: article generated ({len(article_text)} chars)")
         except Exception as exc:
