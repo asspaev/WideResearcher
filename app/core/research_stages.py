@@ -47,3 +47,9 @@ STAGE_LABELS_DONE: dict[str, str] = {
 }
 
 RESEARCH_STAGES: dict[str, str] = {s: s for s in STAGE_ORDER}
+
+RESEARCH_STATUS_LABELS: dict[str, str] = {
+    "IN_PROCESS": "В процессе",
+    "COMPLETE": "Завершено",
+    "ERROR": "Ошибка",
+}
