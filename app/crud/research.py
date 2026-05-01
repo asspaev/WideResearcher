@@ -224,6 +224,24 @@ async def update_research_name(
     return research
 
 
+async def update_research_version_name(
+    session: AsyncSession,
+    research_id: int,
+    research_version_name: str,
+) -> Research | None:
+    """Обновляет название версии исследования по research_id."""
+    result = await session.execute(select(Research).where(Research.research_id == research_id))
+    research: Research | None = result.scalar_one_or_none()
+
+    if research is None:
+        return None
+
+    research.research_version_name = research_version_name
+    await session.commit()
+    await session.refresh(research)
+    return research
+
+
 async def archive_research(
     session: AsyncSession,
     research_id: int,

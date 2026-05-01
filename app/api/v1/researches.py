@@ -8,10 +8,21 @@ from app.core.celery import celery_app
 from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
-from app.crud.research import archive_research, create_research, get_research_by_id, update_research_name
+from app.crud.research import (
+    archive_research,
+    create_research,
+    get_research_by_id,
+    update_research_name,
+    update_research_version_name,
+)
 from app.models.research import Research
 from app.schemas.user import UserCookie
-from app.services.data_fetch import get_research_settings, get_researches_cards, research_settings_redis_key
+from app.services.data_fetch import (
+    get_research_detail,
+    get_research_settings,
+    get_researches_cards,
+    research_settings_redis_key,
+)
 from app.utils.dependencies import get_user_cookie
 
 router = APIRouter(prefix=get_settings().prefix.researches, tags=["researches"])
@@ -182,6 +193,36 @@ async def put_update_research(
             "old_name": old_name,
             "new_name": research_name,
             "research_id": research_id,
+        },
+    )
+
+
+@router.put("/{research_id}/version", name="api_update_research_version")
+async def put_update_research_version(
+    request: Request,
+    research_id: int,
+    research_version_name: str = Form(...),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Обновление названия версии исследования"""
+    research = await get_research_by_id(session, research_id)
+    old_name: str = research.research_version_name
+
+    research = await update_research_version_name(session, research_id, research_version_name)
+    logger.info(f"Research version renamed: {research_id} for user {user_cookie.user_id} {user_cookie.user_login}")
+
+    detail = await get_research_detail(research, session)
+
+    return templates.TemplateResponse(
+        "includes/popups/version_edited.html",
+        {
+            "request": request,
+            "research": research,
+            "old_name": old_name,
+            "new_name": research_version_name,
+            "schedule_next_launch_time": detail["schedule_next_launch_time"],
+            "research_last_update_time": detail["research_last_update_time"],
         },
     )
 
