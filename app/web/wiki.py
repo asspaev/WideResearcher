@@ -84,7 +84,6 @@ async def get_article(
         {
             "request": request,
             "user_cookie": user_cookie,
-            "page": "wiki",
             "title": meta.get("title", slug),
             "subtitle": meta.get("subtitle", ""),
             "image": meta.get("image", ""),
