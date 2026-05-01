@@ -253,6 +253,7 @@ legend {
     --color-white-default: #FFFFFF;
     --color-white-hover: #CEFFCE;
     --color-warning-default: #FF3F3F;
+    --color-process-default: #FFB800;
     --color-black-default: #0A0A0A;
     --color-block-1-default: #1B1B1B;
     --color-block-1-stroke: #232323;
@@ -1043,6 +1044,18 @@ h1 {
     position: relative;
 }
 
+.property--in-process {
+    color: var(--color-process-default);
+}
+
+.property--complete {
+    color: var(--color-primary-default);
+}
+
+.property--error {
+    color: var(--color-warning-default);
+}
+
 .property:not(:last-child)::after {
     content: "·";
     position: absolute;
@@ -1050,6 +1063,7 @@ h1 {
     margin-left: -8px;
     top: 45%;
     transform: translateY(-50%);
+    color: var(--color-text-body);
 }
 
 .empty-block {

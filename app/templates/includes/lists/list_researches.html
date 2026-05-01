@@ -29,6 +29,21 @@
                 </p>
             </a>
             <div class="row">
+                <div
+                    class="property{% if research.research_status == 'IN_PROCESS' %} property--in-process{% elif research.research_status == 'COMPLETE' %} property--complete{% elif research.research_status == 'ERROR' %} property--error{% endif %}">
+                    {% set width = 16 %}
+                    {% set height = 16 %}
+                    {% set class = "" %}
+                    {% if research.research_status == "IN_PROCESS" %}
+                    {% include 'includes/svg/reload.svg' %}
+                    {% elif research.research_status == "COMPLETE" %}
+                    {% include 'includes/svg/check.svg' %}
+                    {% elif research.research_status == "ERROR" %}
+                    {% include 'includes/svg/xmark.svg' %}
+                    {% endif %}
+                    {{ research_status_labels[research.research_status] }}{% if research.research_status == "IN_PROCESS"
+                    %} ({{ stage_labels_active[research.research_stage] }}){% endif %}
+                </div>
                 <div class="property">
                     {% set width = 16 %}
                     {% set height = 16 %}
@@ -53,7 +68,8 @@
             </div>
         </div>
         <div class="card-actions">
-            <a href="#" hx-trigger="click" hx-get="{{ url_for('edit_research', research_id=research.research_id) }}" hx-swap="none" class="button border-icon">
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('edit_research', research_id=research.research_id) }}"
+                hx-swap="none" class="button border-icon">
                 {% set width = 24 %}
                 {% set height = 24 %}
                 {% set class = "color-white-default" %}
@@ -65,7 +81,8 @@
                 {% set class = "color-white-default" %}
                 {% include 'includes/svg/timer.svg' %}
             </a>
-            <a href="#" hx-trigger="click" hx-get="{{ url_for('delete_research', research_id=research.research_id) }}" hx-swap="none" class="button border-icon">
+            <a href="#" hx-trigger="click" hx-get="{{ url_for('delete_research', research_id=research.research_id) }}"
+                hx-swap="none" class="button border-icon">
                 {% set width = 24 %}
                 {% set height = 24 %}
                 {% set class = "color-white-default" %}

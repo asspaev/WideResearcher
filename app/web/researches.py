@@ -6,7 +6,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.core.research_stages import STAGE_LABELS_ACTIVE, STAGE_LABELS_DONE, STAGE_ORDER
+from app.core.research_stages import RESEARCH_STATUS_LABELS, STAGE_LABELS_ACTIVE, STAGE_LABELS_DONE, STAGE_ORDER
 from app.core.research_timers import compute_ws_timers, get_stage_timers
 from app.core.sql import get_session
 from app.core.templates import templates
@@ -38,6 +38,8 @@ async def get_researches(
             "user_cookie": user_cookie,
             "page": "researches",
             "researches": researches,
+            "research_status_labels": RESEARCH_STATUS_LABELS,
+            "stage_labels_active": STAGE_LABELS_ACTIVE,
         },
     )
 

@@ -6,6 +6,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.redis_cache import get_redis_cache
+from app.core.research_stages import RESEARCH_STATUS_LABELS, STAGE_LABELS_ACTIVE
 from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.research import get_next_planned_research_by_user_id
@@ -64,6 +65,8 @@ async def get_index(
             "nearest_research": nearest_research,
             "page": "index",
             "has_settings": saved is not None,
+            "research_status_labels": RESEARCH_STATUS_LABELS,
+            "stage_labels_active": STAGE_LABELS_ACTIVE,
             **(saved or {}),
         },
     )
