@@ -96,6 +96,8 @@
                                 <select name="scenario_type" class="input" {% if readonly %}disabled{% endif %}>
                                     <option value="NORMAL" {% if not scenario_type or scenario_type=='NORMAL'
                                         %}selected{% endif %}>Стандартный</option>
+                                    <option value="QUESTION" {% if scenario_type=='QUESTION'
+                                        %}selected{% endif %}>Ответ на вопрос</option>
                                 </select>
                                 <label>Сценарий исследования</label>
                             </div>
