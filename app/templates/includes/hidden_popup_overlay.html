@@ -13,3 +13,23 @@
     {% include 'includes/svg/settings.svg' %}
 </a>
 {% endif %}
+{% if settings is defined %}
+<div hx-swap-oob="true" id="new-research-settings-inputs">
+    {% if settings.model_answer %}<input type="hidden" name="model_answer" value="{{ settings.model_answer }}">{% endif %}
+    {% if settings.model_search %}<input type="hidden" name="model_search" value="{{ settings.model_search }}">{% endif %}
+    {% if settings.model_direction %}<input type="hidden" name="model_direction" value="{{ settings.model_direction }}">{% endif %}
+    {% if settings.model_embed %}<input type="hidden" name="model_embed" value="{{ settings.model_embed }}">{% endif %}
+    {% if settings.model_reranker %}<input type="hidden" name="model_reranker" value="{{ settings.model_reranker }}">{% endif %}
+    {% if settings.model_parent %}<input type="hidden" name="model_parent" value="{{ settings.model_parent }}">{% endif %}
+    {% if settings.n_async_parse is not none %}<input type="hidden" name="n_async_parse" value="{{ settings.n_async_parse }}">{% endif %}
+    {% if settings.scenario_type %}<input type="hidden" name="scenario_type" value="{{ settings.scenario_type }}">{% endif %}
+    {% if settings.search_areas %}<input type="hidden" name="search_areas" value="{{ settings.search_areas }}">{% endif %}
+    {% if settings.exclude_search_areas %}<input type="hidden" name="exclude_search_areas" value="{{ settings.exclude_search_areas }}">{% endif %}
+    {% if settings.n_vectors is not none %}<input type="hidden" name="n_vectors" value="{{ settings.n_vectors }}">{% endif %}
+    {% if settings.n_search_queries is not none %}<input type="hidden" name="n_search_queries" value="{{ settings.n_search_queries }}">{% endif %}
+    {% if settings.n_top_search_results is not none %}<input type="hidden" name="n_top_search_results" value="{{ settings.n_top_search_results }}">{% endif %}
+    {% if settings.n_top_bm25_chunks is not none %}<input type="hidden" name="n_top_bm25_chunks" value="{{ settings.n_top_bm25_chunks }}">{% endif %}
+    {% if settings.n_top_embed_chunks is not none %}<input type="hidden" name="n_top_embed_chunks" value="{{ settings.n_top_embed_chunks }}">{% endif %}
+    {% if settings.n_top_rerank_chunks is not none %}<input type="hidden" name="n_top_rerank_chunks" value="{{ settings.n_top_rerank_chunks }}">{% endif %}
+</div>
+{% endif %}
