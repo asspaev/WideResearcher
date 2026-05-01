@@ -1,0 +1,23 @@
+<div id="research-title-props" class="row"{% if oob %} hx-swap-oob="true"{% endif %}>
+    <div class="property">
+        {% set width = 16 %}
+        {% set height = 16 %}
+        {% set class = "color-text-body" %}
+        {% include 'includes/svg/timer.svg' %}
+        Следующее исследование {{ schedule_next_launch_time }}
+    </div>
+    <div class="property">
+        {% set width = 16 %}
+        {% set height = 16 %}
+        {% set class = "color-text-body" %}
+        {% include 'includes/svg/git-fork.svg' %}
+        {{ research.research_version_name }}
+    </div>
+    <div class="property">
+        {% set width = 16 %}
+        {% set height = 16 %}
+        {% set class = "color-text-body" %}
+        {% include 'includes/svg/revert.svg' %}
+        Обновлён {{ research_last_update_time }}
+    </div>
+</div>
