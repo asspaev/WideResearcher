@@ -2272,3 +2272,60 @@ h4 {
 #list_researches {
     margin-bottom: 32px;
 }
+
+/* ===== Segment actions: edit mode ===== */
+
+.segment-content-edit {
+    display: none;
+    flex: 1;
+    min-width: 0;
+    min-height: 60px;
+    resize: vertical;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.segment-action-btn.btn-save,
+.segment-action-btn.btn-cancel {
+    display: none;
+}
+
+.segment-row.editing .segment-content {
+    display: none;
+}
+
+.segment-row.editing .segment-content-edit {
+    display: block;
+}
+
+.segment-row.editing .btn-edit,
+.segment-row.editing .btn-like,
+.segment-row.editing .btn-dislike,
+.segment-row.editing .btn-comment {
+    display: none;
+}
+
+.segment-row.editing .btn-save,
+.segment-row.editing .btn-cancel {
+    display: flex;
+}
+
+.segment-action-btn.active-dislike {
+    color: var(--color-warning-default);
+}
+
+/* ===== Segment comment popup ===== */
+
+.segment-comment-popup {
+    width: 480px;
+    max-width: 480px;
+}
+
+.segment-comment-popup textarea {
+    height: 120px;
+    text-align: left;
+    padding: 12px 16px;
+    resize: vertical;
+}

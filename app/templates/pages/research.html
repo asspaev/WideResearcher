@@ -28,34 +28,49 @@
 
                 {% if segments %}
 
-                <div class="b-1 p-32 content-research">
+                <div class="b-1 p-32 content-research" data-research-id="{{ research.research_id }}">
                     {% for seg in segments %}
-                    <div class="segment-row segment-{{ seg.type }}">
+                    <div class="segment-row segment-{{ seg.type }}"
+                         data-segment-index="{{ loop.index0 }}"
+                         data-comment="{{ seg.comment or '' }}">
                         <span class="segment-tag">
                             {% if seg.type in ['h1', 'h2', 'h3'] %}{{ seg.type }}{% endif %}
                         </span>
                         <div class="segment-content">{{ seg.content | safe }}</div>
+                        <textarea class="segment-content-edit">{{ seg.content }}</textarea>
                         <div class="segment-actions">
-                            <button class="segment-action-btn" title="Редактировать">
+                            <button class="segment-action-btn btn-edit" title="Редактировать">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
                                 {% set class = "" %}
                                 {% include 'includes/svg/edit.svg' %}
                             </button>
-                            <button class="segment-action-btn{% if seg.is_like %} active{% endif %}" title="Нравится">
+                            <button class="segment-action-btn btn-save" title="Сохранить">
+                                {% set width = 16 %}
+                                {% set height = 16 %}
+                                {% set class = "" %}
+                                {% include 'includes/svg/check.svg' %}
+                            </button>
+                            <button class="segment-action-btn btn-cancel" title="Отмена">
+                                {% set width = 16 %}
+                                {% set height = 16 %}
+                                {% set class = "" %}
+                                {% include 'includes/svg/xmark.svg' %}
+                            </button>
+                            <button class="segment-action-btn btn-like{% if seg.is_like %} active{% endif %}" title="Нравится">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
                                 {% set class = "" %}
                                 {% include 'includes/svg/scores/like.svg' %}
                             </button>
-                            <button class="segment-action-btn{% if seg.is_dislike %} active{% endif %}"
+                            <button class="segment-action-btn btn-dislike{% if seg.is_dislike %} active-dislike{% endif %}"
                                 title="Не нравится">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
                                 {% set class = "" %}
                                 {% include 'includes/svg/scores/dislike.svg' %}
                             </button>
-                            <button class="segment-action-btn{% if seg.comment %} active{% endif %}"
+                            <button class="segment-action-btn btn-comment{% if seg.comment %} active{% endif %}"
                                 title="Комментарий">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
@@ -65,6 +80,20 @@
                         </div>
                     </div>
                     {% endfor %}
+                </div>
+
+                <div id="segment-comment-overlay" class="popup-overlay hidden">
+                    <div class="popup segment-comment-popup">
+                        <h2>Комментарий к сегменту</h2>
+                        <div class="popup-header">
+                            <p>Добавьте заметку к этому фрагменту исследования</p>
+                        </div>
+                        <textarea id="segment-comment-textarea" placeholder="Введите комментарий..."></textarea>
+                        <div class="buttons-row">
+                            <button id="segment-comment-save" class="button primary solid flex-1">Сохранить</button>
+                            <button id="segment-comment-reset" class="button warning stroke flex-1">Сбросить</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="b-1 p-32 next-step-research">
