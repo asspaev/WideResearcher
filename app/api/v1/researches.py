@@ -68,7 +68,22 @@ async def post_create_research(
         n_top_embed_chunks,
         n_top_rerank_chunks,
     )
-    if not model_answer or not model_search or model_direction is None or model_embed is None or model_reranker is None:
+    needs_redis = (
+        not model_answer
+        or not model_search
+        or model_direction is None
+        or model_embed is None
+        or model_reranker is None
+        or n_vectors is None
+        or n_search_queries is None
+        or n_top_search_results is None
+        or n_top_bm25_chunks is None
+        or n_top_embed_chunks is None
+        or n_top_rerank_chunks is None
+        or n_async_parse is None
+        or scenario_type is None
+    )
+    if needs_redis:
         settings = await get_research_settings(user_cookie.user_id, session, get_redis_cache())
         model_answer = model_answer or settings.get("model_answer")
         model_search = model_search or settings.get("model_search")
@@ -78,6 +93,22 @@ async def post_create_research(
             model_embed = settings.get("model_embed")
         if model_reranker is None:
             model_reranker = settings.get("model_reranker")
+        if n_vectors is None:
+            n_vectors = settings.get("n_vectors")
+        if n_search_queries is None:
+            n_search_queries = settings.get("n_search_queries")
+        if n_top_search_results is None:
+            n_top_search_results = settings.get("n_top_search_results")
+        if n_top_bm25_chunks is None:
+            n_top_bm25_chunks = settings.get("n_top_bm25_chunks")
+        if n_top_embed_chunks is None:
+            n_top_embed_chunks = settings.get("n_top_embed_chunks")
+        if n_top_rerank_chunks is None:
+            n_top_rerank_chunks = settings.get("n_top_rerank_chunks")
+        if n_async_parse is None:
+            n_async_parse = settings.get("n_async_parse")
+        if scenario_type is None:
+            scenario_type = settings.get("scenario_type")
         logger.debug(f"Model direction for new research: {model_direction}")
 
     if not model_answer or not model_search:
@@ -246,5 +277,6 @@ async def api_edit_new_research(
             "request": request,
             "has_settings": True,
             "previous_screen": previous_screen,
+            "settings": settings,
         },
     )
