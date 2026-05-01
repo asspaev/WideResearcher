@@ -2268,3 +2268,7 @@ h4 {
     border-top: 1px solid var(--color-block-1-stroke);
     margin: 16px 0;
 }
+
+#list_researches {
+    margin-bottom: 32px;
+}
