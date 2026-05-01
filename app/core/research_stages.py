@@ -10,6 +10,7 @@ STAGE_ORDER: list[str] = [
     "SUMMARIZE",
     "STRUCTURE",
     "WRITE",
+    "RENAME",
     "DONE",
 ]
 
@@ -25,6 +26,7 @@ STAGE_LABELS_ACTIVE: dict[str, str] = {
     "SUMMARIZE": "Суммаризирует информацию...",
     "STRUCTURE": "Формирует структуру...",
     "WRITE": "Пишет исследование...",
+    "RENAME": "Формирует название...",
     "DONE": "Завершено",
 }
 
@@ -40,6 +42,7 @@ STAGE_LABELS_DONE: dict[str, str] = {
     "SUMMARIZE": "Суммаризировал информацию",
     "STRUCTURE": "Сформировал структуру исследования",
     "WRITE": "Написал исследование",
+    "RENAME": "Сформировал название",
     "DONE": "Завершено",
 }
 

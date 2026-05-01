@@ -6,6 +6,7 @@ from app.core.research import (
     DirectionResearchStep,
     EmbedScoringStep,
     KeywordsResearchStep,
+    RenameResearchStep,
     RerankScoringStep,
     SearchResearchStep,
     SummarizeResearchStep,
@@ -34,6 +35,7 @@ class NormalScenario(ScenarioBase):
         self.rerank_scoring_step = RerankScoringStep(session, research)
         self.summarize_step = SummarizeResearchStep(session, research)
         self.write_step = self.get_write_step()
+        self.rename_step = RenameResearchStep(session, research)
 
     async def pipeline(self):
         try:
@@ -55,5 +57,7 @@ class NormalScenario(ScenarioBase):
                 await self.summarize_step.execute()
             if not self._should_skip_stage("WRITE"):
                 await self.write_step.execute()
+            if not self._should_skip_stage("RENAME"):
+                await self.rename_step.execute()
         except Exception:
             raise
