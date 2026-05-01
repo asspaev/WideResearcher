@@ -107,11 +107,9 @@
 
                 {# Data anchor for WebSocket JS #}
                 <div id="research-ws-data" data-research-id="{{ research.research_id }}"
-                    data-initial-stage="{{ research.research_stage }}"
-                    data-stage-order='{{ stage_order | tojson }}'
+                    data-initial-stage="{{ research.research_stage }}" data-stage-order='{{ stage_order | tojson }}'
                     data-labels-active='{{ stage_labels_active | tojson }}'
-                    data-labels-done='{{ stage_labels_done | tojson }}'
-                    hidden aria-hidden="true"></div>
+                    data-labels-done='{{ stage_labels_done | tojson }}' hidden aria-hidden="true"></div>
 
                 {# Hidden SVG icon templates used by research_ws.js #}
                 <div id="rs-tpl-active" hidden aria-hidden="true">
@@ -155,7 +153,7 @@
                 <div class="b-1 p-32 research-prompt-card">
                     <p class="research-prompt-label">Исследует запрос</p>
                     <div class="research-prompt-text">
-                        {% if research.research_body_start %}{{ research.research_body_start.get('prompt', '') }}{%
+                        {% if research.research_body_start %}{{ research.research_body_start.get('query', '') }}{%
                         endif %}
                     </div>
                 </div>
@@ -217,7 +215,7 @@
                 <div class="b-1 p-32 research-prompt-card">
                     <p class="research-prompt-label">Запрос исследования</p>
                     <div class="research-prompt-text">
-                        {% if research.research_body_start %}{{ research.research_body_start.get('prompt', '') }}{%
+                        {% if research.research_body_start %}{{ research.research_body_start.get('query', '') }}{%
                         endif %}
                     </div>
                 </div>
