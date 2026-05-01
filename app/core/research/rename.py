@@ -41,6 +41,13 @@ class RenameResearchStep(ResearchStepBase):
 
         query: str = (research.research_body_start or {}).get("query", research.research_name)
 
+        if research.research_name != query:
+            logger.info(
+                f"{self._log_extra()} RenameResearchStep: skipping, user already renamed "
+                f"research to '{research.research_name}'"
+            )
+            return
+
         messages = build_rename_messages(h1=h1_content or "", query=query)
 
         try:
