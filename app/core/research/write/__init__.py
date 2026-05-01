@@ -1,4 +1,4 @@
 from .base import WriteStepBase
-from .normal import NormalWriteStep
+from .standard import StandardWriteStep
 
-__all__ = ["NormalWriteStep", "WriteStepBase"]
+__all__ = ["StandardWriteStep", "WriteStepBase"]

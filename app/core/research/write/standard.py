@@ -10,7 +10,7 @@ from .base import WriteStepBase
 from .segments import format_as_segments
 
 
-class NormalWriteStep(WriteStepBase):
+class StandardWriteStep(WriteStepBase):
     """Шаг написания ответа в обычном режиме — одним запросом к LLM."""
 
     async def execute(self) -> None:
@@ -19,14 +19,12 @@ class NormalWriteStep(WriteStepBase):
         Генерирует развёрнутый Markdown-ответ за один LLM-вызов,
         конвертирует его в типизированные сегменты и сохраняет в БД.
         """
-        # Переключаем стадию исследования на «написание статьи»
         research = self._research
         await update_research_stage(self._session, research, RESEARCH_STAGES["WRITE"])
 
-        # Получаем LLM-клиент и загружаем bullet-саммари чанков для контекста
         llm = await self._get_llm(research.model_id_answer)
         if llm is None:
-            logger.error(f"{self._log_extra()} NormalWriteStep: answer model {research.model_id_answer} not found")
+            logger.error(f"{self._log_extra()} StandardWriteStep: answer model {research.model_id_answer} not found")
             self.has_error = True
             return
 
@@ -47,7 +45,6 @@ class NormalWriteStep(WriteStepBase):
         query: str = (research.research_body_start or {}).get("query", research.research_name)
         direction: str = research.research_direction_content or ""
 
-        # Пишем развёрнутый ответ в стиле Markdown
         messages = build_write_normal_messages(
             query=query,
             direction=direction,
@@ -62,13 +59,12 @@ class NormalWriteStep(WriteStepBase):
                 research_id=research.research_id,
                 step_type="write_normal",
             )
-            logger.info(f"{self._log_extra()} NormalWriteStep: article generated ({len(article_text)} chars)")
+            logger.info(f"{self._log_extra()} StandardWriteStep: article generated ({len(article_text)} chars)")
         except Exception as exc:
             self.has_error = True
-            logger.exception(f"{self._log_extra()} NormalWriteStep: generation failed: {exc}")
+            logger.exception(f"{self._log_extra()} StandardWriteStep: generation failed: {exc}")
             return
 
-        # Конвертируем Markdown в типизированные сегменты и сохраняем итог в БД
         segments = format_as_segments(article_text)
 
         if segments:
@@ -77,7 +73,7 @@ class NormalWriteStep(WriteStepBase):
                 research=research,
                 body_finish={"segments": segments},
             )
-            logger.info(f"{self._log_extra()} NormalWriteStep: done ({len(segments)} segments)")
+            logger.info(f"{self._log_extra()} StandardWriteStep: done ({len(segments)} segments)")
         else:
             self.has_error = True
-            logger.error(f"{self._log_extra()} NormalWriteStep: no segments produced")
+            logger.error(f"{self._log_extra()} StandardWriteStep: no segments produced")

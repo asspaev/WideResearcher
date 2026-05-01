@@ -6,7 +6,7 @@ from .rename import RenameResearchStep
 from .scoring_pages import BM25ScoringStep, EmbedScoringStep, RerankScoringStep, ScoringPagesStepBase
 from .search import SearchResearchStep
 from .summarize import SummarizeResearchStep
-from .write import NormalWriteStep, WriteStepBase
+from .write import StandardWriteStep, WriteStepBase
 
 __all__ = [
     "DirectionResearchStep",
@@ -20,7 +20,7 @@ __all__ = [
     "ResearchStepBase",
     "DirectionStepError",
     "WriteStepBase",
-    "NormalWriteStep",
+    "StandardWriteStep",
     "ChunkingResearchStep",
     "RenameResearchStep",
 ]

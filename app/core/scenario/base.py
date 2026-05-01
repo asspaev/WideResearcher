@@ -4,14 +4,14 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.research.write.base import WriteStepBase
-from app.core.research.write.normal import NormalWriteStep
+from app.core.research.write.standard import StandardWriteStep
 from app.core.research_stages import STAGE_ORDER
 from app.core.research_timers import save_stage_start
 from app.crud.research import update_research_error, update_research_status
 from app.models.research import Research, ResearchStatus
 
 WRITE_MAP: dict[str, type[WriteStepBase]] = {
-    "NORMAL": NormalWriteStep,
+    "NORMAL": StandardWriteStep,
 }
 
 
