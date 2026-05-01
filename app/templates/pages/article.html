@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — WideResearcher{% endblock %}
+
+{% block header %}
+{% include "includes/header.html" %}
+{% endblock %}
+
+{% block main %}
+<div class="main">
+    <div class="container">
+        <div class="article-wrapper">
+            <div class="article-card">
+                <div class="article-cover">
+                    {% if image %}
+                    <img src="{{ image }}" alt="{{ title }}">
+                    {% endif %}
+                </div>
+                <div class="article-content">
+                    <div class="article-body">
+                        {{ content_html | safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

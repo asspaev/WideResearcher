@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Полезная информация — WideResearcher{% endblock %}
+
+{% block header %}
+{% include "includes/header.html" %}
+{% endblock %}
+
+{% block main %}
+<div class="main">
+    <div class="container">
+        <div class="wiki-wrapper">
+            <div class="wiki-header">
+                <h1 class="wiki-title">Полезная информация</h1>
+            </div>
+            {% if articles %}
+            <div class="wiki-grid">
+                {% for article in articles %}
+                <a href="{{ url_for('article', slug=article.slug) }}" class="wiki-card">
+                    <div class="wiki-card-image">
+                        {% if article.image %}
+                        <img src="{{ article.image }}" alt="{{ article.title }}">
+                        {% endif %}
+                    </div>
+                    <div class="wiki-card-body">
+                        <div class="wiki-card-text">
+                            <p class="wiki-card-title">{{ article.title }}</p>
+                            <p class="wiki-card-subtitle">{{ article.subtitle }}</p>
+                        </div>
+                        <div class="wiki-card-read">
+                            <span>Читать</span>
+                            <svg width="32" height="10" viewBox="0 0 32 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M1 5H31M31 5L27 1M31 5L27 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-block" style="padding-top: 16px;">
+                {% set width = 96 %}
+                {% set height = 96 %}
+                {% set class = "color-text-body" %}
+                {% include 'includes/svg/empty.svg' %}
+                <div class="empty-info">
+                    <h4>Пусто...</h4>
+                    <p>Тут пока нет ни одной статьи</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

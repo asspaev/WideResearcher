@@ -9,6 +9,7 @@ services:
       - wideresearcher-network
     volumes:
       - ./app:/workdir/app
+      - ./docs/wiki:/workdir/docs/wiki
       - ./.env:/workdir/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -27,7 +27,7 @@
             <a href="{{ url_for('models')}}" class="header-menu{% if page == 'models' %}-selected{% endif %}">
                 Модели
             </a>
-            <a href="" class="header-menu{% if page == 'guide' %}-selected{% endif %}">
+            <a href="{{ url_for('wiki') }}" class="header-menu{% if page == 'wiki' %}-selected{% endif %}">
                 Полезная информация
             </a>
         </div>
