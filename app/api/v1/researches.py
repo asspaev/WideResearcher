@@ -1,6 +1,9 @@
+import copy
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import Response
 from loguru import logger
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -12,6 +15,8 @@ from app.crud.research import (
     archive_research,
     create_research,
     get_research_by_id,
+    get_research_by_id_and_user_id,
+    update_research_body_finish,
     update_research_name,
     update_research_version_name,
 )
@@ -26,6 +31,14 @@ from app.services.data_fetch import (
 from app.utils.dependencies import get_user_cookie
 
 router = APIRouter(prefix=get_settings().prefix.researches, tags=["researches"])
+
+
+class SegmentPatch(BaseModel):
+    content: str | None = None
+    is_like: bool | None = None
+    is_dislike: bool | None = None
+    comment: str | None = None
+
 
 RESEARCH_SETTINGS_TTL = 86400  # 24 часа
 _MAX_RESEARCH_NAME_LEN = 120
@@ -321,3 +334,41 @@ async def api_edit_new_research(
             "settings": settings,
         },
     )
+
+
+@router.patch("/{research_id}/segments/{segment_index}", name="api_patch_research_segment")
+async def patch_research_segment(
+    research_id: int,
+    segment_index: int,
+    body: SegmentPatch,
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Обновление поля сегмента в research_body_finish"""
+    research = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    if research is None:
+        return Response(status_code=404)
+
+    body_finish = research.research_body_finish
+    if not body_finish or not isinstance(body_finish, dict):
+        return Response(status_code=422)
+
+    segments = body_finish.get("segments")
+    if not segments or segment_index < 0 or segment_index >= len(segments):
+        return Response(status_code=404)
+
+    updated = body.model_fields_set
+    body_finish_new = copy.deepcopy(body_finish)
+    seg = body_finish_new["segments"][segment_index]
+
+    if "content" in updated and body.content is not None:
+        seg["content"] = body.content
+    if "is_like" in updated and body.is_like is not None:
+        seg["is_like"] = body.is_like
+    if "is_dislike" in updated and body.is_dislike is not None:
+        seg["is_dislike"] = body.is_dislike
+    if "comment" in updated:
+        seg["comment"] = body.comment
+
+    await update_research_body_finish(session, research, body_finish_new)
+    return Response(status_code=204)
