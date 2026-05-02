@@ -7,6 +7,11 @@
     var commentTextarea = document.getElementById('segment-comment-textarea');
     var currentRow = null;
 
+    function autoResize(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
     async function patchSegment(segIdx, data) {
         try {
             var resp = await fetch('/api/v1/researches/' + researchId + '/segments/' + segIdx, {
@@ -31,10 +36,15 @@
         var btnDislike = row.querySelector('.btn-dislike');
         var btnComment = row.querySelector('.btn-comment');
 
+        editTextarea.addEventListener('input', function () {
+            autoResize(editTextarea);
+        });
+
         if (btnEdit) {
             btnEdit.addEventListener('click', function () {
-                editTextarea.value = contentDiv.textContent;
+                editTextarea.value = contentDiv.innerHTML;
                 row.classList.add('editing');
+                autoResize(editTextarea);
                 editTextarea.focus();
             });
         }
@@ -44,7 +54,7 @@
                 var newContent = editTextarea.value;
                 var ok = await patchSegment(segIdx, { content: newContent });
                 if (ok) {
-                    contentDiv.textContent = newContent;
+                    contentDiv.innerHTML = newContent;
                     row.classList.remove('editing');
                 }
             });
