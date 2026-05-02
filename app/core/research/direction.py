@@ -71,6 +71,7 @@ class DirectionResearchStep(ResearchStepBase):
 
         query: str = parent_research.research_name
         bullet_summaries: list[str] = []
+        consecutive_errors = 0
 
         for segment in segments:
             formatted = _format_segment_for_prompt(segment)
@@ -88,8 +89,15 @@ class DirectionResearchStep(ResearchStepBase):
                 )
                 if summary and summary.strip():
                     bullet_summaries.append(summary.strip())
+                consecutive_errors = 0
             except Exception as exc:
-                logger.warning(f"{self._log_extra()} DirectionResearchStep: failed to summarize segment: {exc}")
+                consecutive_errors += 1
+                logger.warning(
+                    f"{self._log_extra()} DirectionResearchStep: failed to summarize segment "
+                    f"({consecutive_errors}/5): {exc}"
+                )
+                if consecutive_errors >= 5:
+                    raise DirectionStepError("Too many consecutive segment summarization failures") from exc
 
         return "\n\n".join(bullet_summaries)
 
