@@ -3,6 +3,42 @@
 import re
 
 
+def apply_citations(text: str, url_map: dict[int, str]) -> str:
+    """Заменяет числовые маркеры цитат [N] на Markdown-ссылки [[N]](url).
+
+    Args:
+        text: Текст с маркерами вида [1], [2] и т.д.
+        url_map: Словарь {номер: url}.
+
+    Returns:
+        Текст с подставленными Markdown-ссылками для известных номеров.
+        Неизвестные маркеры остаются без изменений.
+    """
+
+    def _replace(m: re.Match) -> str:
+        n = int(m.group(1))
+        url = url_map.get(n)
+        return f"[[{n}]]({url})" if url else m.group(0)
+
+    return re.sub(r"\[(\d+)\]", _replace, text)
+
+
+def _apply_markdown_links(text: str) -> str:
+    """Конвертирует Markdown-ссылки [text](url) в HTML-теги <a>.
+
+    Args:
+        text: Строка с возможными Markdown-ссылками.
+
+    Returns:
+        Строка с подставленными тегами <a href="..." target="_blank" rel="noopener noreferrer">.
+    """
+    return re.sub(
+        r"\[(.*?)\]\(([^)]+)\)",
+        lambda m: f'<a href="{m.group(2)}" target="_blank" rel="noopener noreferrer">{m.group(1)}</a>',
+        text,
+    )
+
+
 def _apply_inline_markdown(text: str) -> str:
     """Заменяет inline Markdown разметку на теги <b> и <i>.
 
@@ -32,7 +68,7 @@ def format_as_segments(text: str) -> list[dict]:
     def make_segment(tag: str, content: str) -> dict:
         return {
             "type": tag,
-            "content": _apply_inline_markdown(content),
+            "content": _apply_markdown_links(_apply_inline_markdown(content)),
             "is_like": False,
             "is_dislike": False,
             "comment": None,

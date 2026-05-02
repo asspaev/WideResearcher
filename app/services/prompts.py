@@ -307,6 +307,37 @@ def build_write_chapter_messages(
 # Написание итоговой статьи (обычный режим, без деления на главы)
 # ---------------------------------------------------------------------------
 
+
+def _format_numbered_summaries(summaries: list[dict]) -> tuple[str, dict[int, str]]:
+    """Нумерует источники, дедуплицируя по URL, и форматирует их для промпта.
+
+    Args:
+        summaries: Список словарей с ключами 'url' и 'summary'.
+
+    Returns:
+        Кортеж (текст для промпта, словарь {номер: url}).
+    """
+    seen: dict[str, int] = {}
+    url_map: dict[int, str] = {}
+    merged: dict[int, list[str]] = {}
+
+    for item in summaries:
+        url = item["url"]
+        summary = item["summary"]
+        if url not in seen:
+            n = len(seen) + 1
+            seen[url] = n
+            url_map[n] = url
+            merged[n] = [summary]
+        else:
+            n = seen[url]
+            if summary not in merged[n]:
+                merged[n].append(summary)
+
+    parts = [f"[{n}] {url}\n{chr(10).join(merged[n])}" for n, url in url_map.items()]
+    return "\n\n".join(parts), url_map
+
+
 WRITE_NORMAL_SYSTEM = """\
 Ты — эксперт-аналитик и автор исследований. Твоя задача — написать развёрнутый, \
 аналитический текст на исследовательский запрос на основе предоставленных материалов.
@@ -322,6 +353,10 @@ WRITE_NORMAL_SYSTEM = """\
   связный текст без разделов.
 - Не добавляй вводных фраз вроде «Конечно!» или «Вот ответ:».
 
+Правила цитирования:
+- После каждого факта или утверждения, взятого из источника, ставь его номер в квадратных \
+  скобках сразу после — например [1] или [2]. Используй только номера из списка источников.
+
 Правила содержания:
 - Опирайся на предоставленные саммари источников — не придумывай факты.
 - Не пересказывай источники дословно: анализируй, сопоставляй и делай выводы.
@@ -335,11 +370,12 @@ WRITE_NORMAL_USER = """\
 ## Тематические ориентиры исследования
 {direction}
 
-## Саммари источников (JSON)
-{summaries_json}
+## Источники
+{sources_text}
 
 ## Задача
-Напиши развёрнутый ответ на исследовательский запрос, опираясь на саммари источников. \
+Напиши развёрнутый ответ на исследовательский запрос, опираясь на источники. \
+Цитируй источники по их номерам [N] после каждого использованного факта. \
 При необходимости раздели ответ на логические главы с заголовками ##.\
 """
 
@@ -348,8 +384,8 @@ def build_write_normal_messages(
     query: str,
     direction: str,
     summaries: list[dict],
-) -> list[dict]:
-    """Формирует список сообщений для написания итоговой статьи в обычном режиме.
+) -> tuple[list[dict], dict[int, str]]:
+    """Формирует сообщения для написания итоговой статьи в обычном режиме.
 
     Args:
         query: Первичный исследовательский запрос пользователя.
@@ -357,20 +393,19 @@ def build_write_normal_messages(
         summaries: Список словарей с ключами 'url' и 'summary'.
 
     Returns:
-        Список сообщений в формате OpenAI Chat для передачи в LLMClient.generate().
+        Кортеж (сообщения для LLMClient.generate(), словарь {номер: url}).
     """
-    import json as _json
-
-    summaries_json = _json.dumps(summaries, ensure_ascii=False, indent=2)
+    sources_text, url_map = _format_numbered_summaries(summaries)
     user_content = WRITE_NORMAL_USER.format(
         query=query,
         direction=direction or "(не задано)",
-        summaries_json=summaries_json,
+        sources_text=sources_text,
     )
-    return [
+    messages = [
         {"role": "system", "content": WRITE_NORMAL_SYSTEM},
         {"role": "user", "content": user_content},
     ]
+    return messages, url_map
 
 
 WRITE_QUESTION_SYSTEM = """\
@@ -384,6 +419,10 @@ WRITE_QUESTION_SYSTEM = """\
 - Не используй маркированные списки без крайней необходимости.
 - Не добавляй вводных фраз вроде «Конечно!» или «Вот ответ:».
 
+Правила цитирования:
+- После каждого факта или утверждения, взятого из источника, ставь его номер в квадратных \
+  скобках сразу после — например [1] или [2]. Используй только номера из списка источников.
+
 Правила содержания:
 - Опирайся на предоставленные саммари источников — не придумывай факты.
 - Отвечай по существу: ответ должен быть исчерпывающим, но кратким.\
@@ -393,11 +432,12 @@ WRITE_QUESTION_USER = """\
 ## Вопрос
 {query}
 
-## Саммари источников (JSON)
-{summaries_json}
+## Источники
+{sources_text}
 
 ## Задача
-Дай краткий и точный ответ на вопрос, опираясь на саммари источников. \
+Дай краткий и точный ответ на вопрос, опираясь на источники. \
+Цитируй источники по их номерам [N] после каждого использованного факта. \
 Ответ — 1–3 абзаца.\
 """
 
@@ -405,24 +445,23 @@ WRITE_QUESTION_USER = """\
 def build_write_question_messages(
     query: str,
     summaries: list[dict],
-) -> list[dict]:
-    """Формирует список сообщений для написания краткого ответа на вопрос.
+) -> tuple[list[dict], dict[int, str]]:
+    """Формирует сообщения для написания краткого ответа на вопрос.
 
     Args:
         query: Вопрос пользователя.
         summaries: Список словарей с ключами 'url' и 'summary'.
 
     Returns:
-        Список сообщений в формате OpenAI Chat для передачи в LLMClient.generate().
+        Кортеж (сообщения для LLMClient.generate(), словарь {номер: url}).
     """
-    import json as _json
-
-    summaries_json = _json.dumps(summaries, ensure_ascii=False, indent=2)
+    sources_text, url_map = _format_numbered_summaries(summaries)
     user_content = WRITE_QUESTION_USER.format(
         query=query,
-        summaries_json=summaries_json,
+        sources_text=sources_text,
     )
-    return [
+    messages = [
         {"role": "system", "content": WRITE_QUESTION_SYSTEM},
         {"role": "user", "content": user_content},
     ]
+    return messages, url_map

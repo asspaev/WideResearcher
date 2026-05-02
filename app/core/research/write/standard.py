@@ -7,7 +7,7 @@ from app.models.research import RESEARCH_STAGES
 from app.services.prompts import build_write_normal_messages, build_write_question_messages
 
 from .base import WriteStepBase
-from .segments import format_as_segments
+from .segments import apply_citations, format_as_segments
 
 
 class StandardWriteStep(WriteStepBase):
@@ -47,13 +47,13 @@ class StandardWriteStep(WriteStepBase):
 
         scenario_type = (research.settings_scenario_type or "NORMAL").upper()
         if scenario_type == "QUESTION":
-            messages = build_write_question_messages(
+            messages, url_map = build_write_question_messages(
                 query=query,
                 summaries=summaries,
             )
             step_type = "write_question"
         else:
-            messages = build_write_normal_messages(
+            messages, url_map = build_write_normal_messages(
                 query=query,
                 direction=direction,
                 summaries=summaries,
@@ -73,6 +73,9 @@ class StandardWriteStep(WriteStepBase):
             self.has_error = True
             logger.exception(f"{self._log_extra()} StandardWriteStep: generation failed: {exc}")
             return
+
+        if url_map:
+            article_text = apply_citations(article_text, url_map)
 
         segments = format_as_segments(article_text)
 
