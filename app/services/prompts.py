@@ -89,6 +89,107 @@ def build_direction_messages(
 
 
 # ---------------------------------------------------------------------------
+# Суммаризация сегментов предыдущего исследования
+# ---------------------------------------------------------------------------
+
+SEGMENT_SUMMARIZE_SYSTEM = """\
+You are a research assistant. Given a segment from a research document, extract the most relevant \
+key facts and insights as concise bullet points (markdown list with '-').
+Focus on information relevant to the research context.
+If the segment is marked as liked by the user, treat its content as particularly valuable.
+If the segment is marked as disliked, note what was found unsatisfactory.
+If there is a user comment, prioritize the user's observation.
+Be factual and specific. Do not include irrelevant details.\
+"""
+
+SEGMENT_SUMMARIZE_USER = """\
+Research context: {query}
+
+Segment content:
+{segment_text}
+
+Extract key information as bullet points:\
+"""
+
+
+def build_segment_summarize_messages(segment_text: str, query: str) -> list[dict]:
+    """Формирует сообщения для суммаризации сегмента предыдущего исследования.
+
+    Args:
+        segment_text: Предотформатированный текст сегмента с пометками пользователя.
+        query: Исходный запрос исследования.
+
+    Returns:
+        Список сообщений в формате OpenAI Chat для передачи в LLMClient.generate().
+    """
+    return [
+        {"role": "system", "content": SEGMENT_SUMMARIZE_SYSTEM},
+        {"role": "user", "content": SEGMENT_SUMMARIZE_USER.format(query=query, segment_text=segment_text)},
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Направление для продолжения исследования (следующий этап)
+# ---------------------------------------------------------------------------
+
+DIRECTION_CONTINUATION_SYSTEM = """\
+Ты — экспертный аналитик и методолог исследований. Твоя задача — определить ключевые направления \
+для продолжения уже начатого исследования. У тебя есть контекст предыдущего исследования, \
+включая оценки пользователя (лайки, дизлайки, комментарии к сегментам).
+
+Правила:
+- Всегда отвечай на языке нового запроса пользователя.
+- Учитывай оценки пользователя: развивай направления, которые он отметил как полезные; \
+  избегай тем, которые были отмечены как нежелательные.
+- Каждое направление должно быть конкретным и операционализируемым.
+- Новые векторы должны углублять или расширять предыдущее исследование, а не повторять его.
+- Структурируй ответ как пронумерованный список векторов исследования.\
+"""
+
+DIRECTION_CONTINUATION_USER = """\
+## Новый запрос пользователя
+{query}
+
+## Ключевые выводы предыдущего исследования
+{prev_context}
+
+## Задача
+Это продолжение предыдущего исследования. Предложи {n_vectors} новых векторов для углублённого \
+изучения темы с учётом уже изученного материала и предпочтений пользователя.
+
+Формат каждого пункта:
+[Номер]. [Название вектора] — [1–2 предложения: суть направления и почему оно важно \
+для продолжения исследования]
+"""
+
+
+def build_direction_continuation_messages(
+    query: str,
+    n_vectors: int = 5,
+    prev_context: str = "",
+) -> list[dict]:
+    """Формирует сообщения для шага направления при продолжении исследования.
+
+    Args:
+        query: Новый запрос пользователя для следующего шага.
+        n_vectors: Количество векторов, которые должна предложить модель.
+        prev_context: Суммаризированный контекст предыдущего исследования.
+
+    Returns:
+        Список сообщений в формате OpenAI Chat для передачи в LLMClient.generate().
+    """
+    user_content = DIRECTION_CONTINUATION_USER.format(
+        query=query,
+        n_vectors=n_vectors,
+        prev_context=prev_context or "(нет данных)",
+    )
+    return [
+        {"role": "system", "content": DIRECTION_CONTINUATION_SYSTEM},
+        {"role": "user", "content": user_content},
+    ]
+
+
+# ---------------------------------------------------------------------------
 # Генерация поисковых запросов
 # ---------------------------------------------------------------------------
 
