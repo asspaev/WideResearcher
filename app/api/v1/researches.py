@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.core.celery import celery_app
 from app.core.redis_cache import get_redis_cache
+from app.core.research_stages import RESEARCH_STATUS_LABELS
 from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.research import (
@@ -222,6 +223,7 @@ async def put_update_research(
             "old_name": old_name,
             "new_name": research_name,
             "research_id": research_id,
+            "research_status_labels": RESEARCH_STATUS_LABELS,
         },
     )
 
