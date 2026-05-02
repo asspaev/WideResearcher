@@ -1,4 +1,5 @@
 import copy
+import re
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import Response
@@ -43,6 +44,14 @@ class SegmentPatch(BaseModel):
 
 RESEARCH_SETTINGS_TTL = 86400  # 24 часа
 _MAX_RESEARCH_NAME_LEN = 120
+
+
+def _next_version_name(current: str) -> str:
+    matches = list(re.finditer(r"\d+", current))
+    if matches:
+        last = matches[-1]
+        return current[: last.start()] + str(int(last.group()) + 1) + current[last.end() :]
+    return current + " 2"
 
 
 @router.post("", name="api_create_research")
@@ -149,11 +158,17 @@ async def post_create_research(
     research_name = prompt[:_MAX_RESEARCH_NAME_LEN]
     research_parent_id = int(model_parent) if model_parent and model_parent != "none" else None
 
+    if research_parent_id is None:
+        research_version_name = "Версия 1"
+    else:
+        parent = await get_research_by_id(session, research_parent_id)
+        research_version_name = _next_version_name(parent.research_version_name)
+
     research: Research = await create_research(
         session,
         user_id=user_cookie.user_id,
         research_name=research_name,
-        research_version_name="v1",
+        research_version_name=research_version_name,
         model_id_answer=model_answer,
         model_id_search=model_search,
         model_id_direction=model_direction,
