@@ -24,6 +24,10 @@ def research_settings_redis_key(user_id: int) -> str:
     return f"research_settings:{user_id}"
 
 
+def research_step_settings_redis_key(user_id: int, research_id: int) -> str:
+    return f"research_step_settings:{user_id}:{research_id}"
+
+
 async def get_research_settings(
     user_id: int,
     session: AsyncSession,

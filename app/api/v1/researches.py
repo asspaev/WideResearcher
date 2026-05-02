@@ -27,6 +27,7 @@ from app.services.data_fetch import (
     get_research_settings,
     get_researches_cards,
     research_settings_redis_key,
+    research_step_settings_redis_key,
 )
 from app.utils.dependencies import get_user_cookie
 
@@ -331,6 +332,69 @@ async def api_edit_new_research(
             "request": request,
             "has_settings": True,
             "previous_screen": previous_screen,
+            "settings": settings,
+        },
+    )
+
+
+@router.post("/{research_id}/next-step/settings", name="api_edit_research_step_settings")
+async def api_edit_research_step_settings(
+    request: Request,
+    research_id: int,
+    model_answer: int | None = Form(None),
+    model_search: int | None = Form(None),
+    model_direction: int | None = Form(None),
+    model_embed: int | None = Form(None),
+    model_reranker: int | None = Form(None),
+    n_async_parse: int = Form(3),
+    scenario_type: str = Form("NORMAL"),
+    search_areas: str = Form(""),
+    exclude_search_areas: str = Form(""),
+    n_vectors: int = Form(5),
+    n_search_queries: int = Form(5),
+    n_top_search_results: int = Form(10),
+    n_top_bm25_chunks: int = Form(50),
+    n_top_embed_chunks: int = Form(30),
+    n_top_rerank_chunks: int = Form(15),
+    previous_screen: str | None = Form(None),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Сохранение настроек следующего этапа исследования в Redis"""
+    research = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    if research is None:
+        return Response(status_code=404)
+
+    settings = {
+        "model_answer": model_answer,
+        "model_search": model_search,
+        "model_direction": model_direction,
+        "model_embed": model_embed,
+        "model_reranker": model_reranker,
+        "n_async_parse": n_async_parse,
+        "scenario_type": scenario_type,
+        "search_areas": search_areas or None,
+        "exclude_search_areas": exclude_search_areas or None,
+        "n_vectors": n_vectors,
+        "n_search_queries": n_search_queries,
+        "n_top_search_results": n_top_search_results,
+        "n_top_bm25_chunks": n_top_bm25_chunks,
+        "n_top_embed_chunks": n_top_embed_chunks,
+        "n_top_rerank_chunks": n_top_rerank_chunks,
+    }
+    cache = get_redis_cache()
+    await cache.set(
+        research_step_settings_redis_key(user_cookie.user_id, research_id),
+        settings,
+        ttl=RESEARCH_SETTINGS_TTL,
+    )
+
+    return templates.TemplateResponse(
+        "includes/hidden_popup_step_settings.html",
+        {
+            "request": request,
+            "research_id": research_id,
+            "has_settings": True,
             "settings": settings,
         },
     )
