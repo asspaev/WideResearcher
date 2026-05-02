@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +10,7 @@ from app.crud.model import get_model_by_id, get_models_by_user_id
 from app.crud.research import get_research_by_id, get_research_by_id_and_user_id
 from app.models import Model, Research
 from app.schemas.user import UserCookie
-from app.services.data_fetch import research_settings_redis_key
+from app.services.data_fetch import research_settings_redis_key, research_step_settings_redis_key
 from app.utils.dependencies import get_user_cookie
 
 router = APIRouter(prefix=get_settings().prefix.popups, tags=["popups"])
@@ -93,6 +93,53 @@ async def get_popup_edit_new_research(
             "embedding_models": embedding_models,
             "previous_screen": previous_screen,
             "has_settings": has_settings,
+            **saved,
+        },
+    )
+
+
+@router.get("/researches/{research_id}/next-step/settings", name="edit_research_next_step_settings")
+async def get_popup_edit_research_next_step_settings(
+    request: Request,
+    research_id: int,
+    previous_screen: str | None = None,
+    reset: bool = False,
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Рендер всплывающего окна настроек следующего этапа исследования"""
+    research = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    if research is None:
+        raise HTTPException(status_code=404)
+
+    models: list[Model] = await get_models_by_user_id(session, user_cookie.user_id)
+    generative_models = [m for m in models if m.model_type == "generative"]
+    embedding_models = [m for m in models if m.model_type == "embedding"]
+
+    cache = get_redis_cache()
+    key = research_step_settings_redis_key(user_cookie.user_id, research_id)
+    saved: dict = {}
+    has_settings: bool = False
+    if reset:
+        await cache.delete(key)
+    else:
+        raw = await cache.get(key)
+        has_settings = raw is not None
+        saved = raw or {}
+
+    return templates.TemplateResponse(
+        "includes/popups/research_settings.html",
+        {
+            "request": request,
+            "readonly": False,
+            "generative_models": generative_models,
+            "embedding_models": embedding_models,
+            "previous_screen": previous_screen,
+            "has_settings": has_settings,
+            "form_action": str(request.url_for("api_edit_research_step_settings", research_id=research_id)),
+            "reset_url": str(request.url_for("edit_research_next_step_settings", research_id=research_id)),
+            "locked_parent": str(research_id),
+            "locked_parent_label": research.research_version_name,
             **saved,
         },
     )
