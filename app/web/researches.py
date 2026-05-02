@@ -6,6 +6,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.redis_cache import get_redis_cache
 from app.core.research_stages import RESEARCH_STATUS_LABELS, STAGE_LABELS_ACTIVE, STAGE_LABELS_DONE, STAGE_ORDER
 from app.core.research_timers import compute_ws_timers, get_stage_timers
 from app.core.sql import get_session
@@ -13,7 +14,7 @@ from app.core.templates import templates
 from app.crud.research import get_research_by_id, get_research_by_id_and_user_id
 from app.models.research import ResearchStatus
 from app.schemas.user import UserCookie
-from app.services.data_fetch import get_research_detail, get_researches_cards
+from app.services.data_fetch import get_research_detail, get_researches_cards, research_step_settings_redis_key
 from app.utils.dependencies import get_user_cookie
 from app.utils.secrets import decode_jwt
 
@@ -128,6 +129,14 @@ async def get_research(
 
     detail = await get_research_detail(research, session)
 
+    step_has_settings = False
+    step_settings: dict = {}
+    if detail.get("segments"):
+        cache = get_redis_cache()
+        raw = await cache.get(research_step_settings_redis_key(user_cookie.user_id, research_id))
+        step_has_settings = raw is not None
+        step_settings = raw or {}
+
     return templates.TemplateResponse(
         "pages/research.html",
         {
@@ -138,6 +147,8 @@ async def get_research(
             "stage_order": STAGE_ORDER,
             "stage_labels_active": STAGE_LABELS_ACTIVE,
             "stage_labels_done": STAGE_LABELS_DONE,
+            "step_has_settings": step_has_settings,
+            "step_settings": step_settings,
             **detail,
         },
     )

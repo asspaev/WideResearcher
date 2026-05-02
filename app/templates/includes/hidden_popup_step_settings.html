@@ -1,0 +1,32 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay hidden">
+    <div id="popup" class="popup"></div>
+</div>
+<a hx-swap-oob="outerHTML" id="step-settings-btn" href="#" hx-swap="none" hx-trigger="click"
+    hx-get="{{ url_for('edit_research_next_step_settings', research_id=research_id) }}"
+    hx-vals='{"previous_screen": "next_step_research"}'
+    class="button border-icon{% if has_settings %} active{% endif %}">
+    {% set width = 24 %}
+    {% set height = 24 %}
+    {% set class = "color-text-body" %}
+    {% include 'includes/svg/settings.svg' %}
+</a>
+{% if settings is defined %}
+<div hx-swap-oob="true" id="step-settings-inputs">
+    <input type="hidden" name="model_parent" value="{{ research_id }}">
+    {% if settings.model_answer %}<input type="hidden" name="model_answer" value="{{ settings.model_answer }}">{% endif %}
+    {% if settings.model_search %}<input type="hidden" name="model_search" value="{{ settings.model_search }}">{% endif %}
+    {% if settings.model_direction %}<input type="hidden" name="model_direction" value="{{ settings.model_direction }}">{% endif %}
+    {% if settings.model_embed %}<input type="hidden" name="model_embed" value="{{ settings.model_embed }}">{% endif %}
+    {% if settings.model_reranker %}<input type="hidden" name="model_reranker" value="{{ settings.model_reranker }}">{% endif %}
+    {% if settings.n_async_parse is not none %}<input type="hidden" name="n_async_parse" value="{{ settings.n_async_parse }}">{% endif %}
+    {% if settings.scenario_type %}<input type="hidden" name="scenario_type" value="{{ settings.scenario_type }}">{% endif %}
+    {% if settings.search_areas %}<input type="hidden" name="search_areas" value="{{ settings.search_areas }}">{% endif %}
+    {% if settings.exclude_search_areas %}<input type="hidden" name="exclude_search_areas" value="{{ settings.exclude_search_areas }}">{% endif %}
+    {% if settings.n_vectors is not none %}<input type="hidden" name="n_vectors" value="{{ settings.n_vectors }}">{% endif %}
+    {% if settings.n_search_queries is not none %}<input type="hidden" name="n_search_queries" value="{{ settings.n_search_queries }}">{% endif %}
+    {% if settings.n_top_search_results is not none %}<input type="hidden" name="n_top_search_results" value="{{ settings.n_top_search_results }}">{% endif %}
+    {% if settings.n_top_bm25_chunks is not none %}<input type="hidden" name="n_top_bm25_chunks" value="{{ settings.n_top_bm25_chunks }}">{% endif %}
+    {% if settings.n_top_embed_chunks is not none %}<input type="hidden" name="n_top_embed_chunks" value="{{ settings.n_top_embed_chunks }}">{% endif %}
+    {% if settings.n_top_rerank_chunks is not none %}<input type="hidden" name="n_top_rerank_chunks" value="{{ settings.n_top_rerank_chunks }}">{% endif %}
+</div>
+{% endif %}

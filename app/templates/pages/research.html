@@ -97,17 +97,7 @@
                 </div>
 
                 <div class="b-1 p-32 next-step-research">
-                    <input class="input" type="text"
-                        placeholder="Начните писать подсказку для следующего этапа исследования...">
-                    <div class="buttons-row">
-                        <button class="button border-icon">
-                            {% set width = 24 %}
-                            {% set height = 24 %}
-                            {% set class = "color-text-body" %}
-                            {% include 'includes/svg/settings.svg' %}
-                        </button>
-                        <button class="primary solid flex-1">Начать следующий этап исследования</button>
-                    </div>
+                    {% include 'includes/forms/next_step_research.html' %}
                 </div>
 
                 {% elif research.research_status.value == 'IN_PROCESS' %}
