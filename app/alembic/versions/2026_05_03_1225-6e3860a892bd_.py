@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 113ca3d13899
+Revision ID: 6e3860a892bd
 Revises:
-Create Date: 2026-04-23 04:33:49.410062
+Create Date: 2026-05-03 12:25:10.417999
 
 """
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "113ca3d13899"
+revision: str = "6e3860a892bd"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -84,17 +84,17 @@ def upgrade() -> None:
         sa.Column("research_result_embed_chunks", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("research_result_rerank_chunks", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("research_error_body", sa.Text(), nullable=True),
-        sa.Column("settings_search_areas", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("settings_exclude_search_areas", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("settings_search_areas", sa.Text(), nullable=True),
+        sa.Column("settings_exclude_search_areas", sa.Text(), nullable=True),
         sa.Column("settings_n_async_parse", sa.Integer(), server_default="3", nullable=False),
-        sa.Column("settings_scenario_type", sa.Text(), server_default="normal", nullable=False),
+        sa.Column("settings_scenario_type", sa.Text(), server_default="NORMAL", nullable=False),
         sa.Column("settings_n_vectors", sa.Integer(), server_default="5", nullable=False),
         sa.Column("settings_n_search_queries", sa.Integer(), server_default="5", nullable=False),
         sa.Column("settings_n_top_search_results", sa.Integer(), server_default="10", nullable=False),
         sa.Column("settings_n_top_bm25_chunks", sa.Integer(), server_default="50", nullable=False),
         sa.Column("settings_n_top_embed_chunks", sa.Integer(), server_default="30", nullable=False),
         sa.Column("settings_n_top_rerank_chunks", sa.Integer(), server_default="15", nullable=False),
-        sa.Column("settings_n_top_chunks", sa.Integer(), server_default="10", nullable=False),
+        sa.Column("settings_n_top_chunks", sa.Integer(), server_default="15", nullable=False),
         sa.Column("archived_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("model_id_answer", sa.BigInteger(), nullable=False),
         sa.Column("model_id_search", sa.BigInteger(), nullable=False),
@@ -182,7 +182,9 @@ def upgrade() -> None:
         sa.Column("schedule_id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("research_id", sa.BigInteger(), nullable=False),
         sa.Column("scheduled_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("repeat_interval", sa.Interval(), nullable=True),
+        sa.Column("repeat_type", sa.String(), nullable=False),
+        sa.Column("repeat_value", sa.Integer(), nullable=False),
+        sa.Column("repeat_unit", sa.String(), nullable=False),
         sa.Column("status", postgresql.ENUM("PLANNED", "COMPLETED", name="schedule_status_enum"), nullable=False),
         sa.Column("meta_created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("meta_updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
@@ -190,6 +192,7 @@ def upgrade() -> None:
             ["research_id"], ["researches.research_id"], name=op.f("fk_research_schedules_research_id_researches")
         ),
         sa.PrimaryKeyConstraint("schedule_id", name=op.f("pk_research_schedules")),
+        sa.UniqueConstraint("research_id", name=op.f("uq_research_schedules_research_id")),
     )
 
 
