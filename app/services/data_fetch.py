@@ -13,6 +13,7 @@ from app.crud.research import (
     get_planned_schedule_by_research_id,
     get_research_by_id,
 )
+from app.crud.research_schedule import _build_interval
 from app.models import Model, Research, ResearchSchedule
 from app.schemas.model import ModelCard
 from app.schemas.research import ResearchCard
@@ -171,7 +172,7 @@ async def get_research_detail(
     schedule = await get_planned_schedule_by_research_id(session, research.research_id)
     if schedule is not None:
         schedule_next_launch_time = human_delta(schedule.scheduled_at, now)
-        schedule_interval = format_interval(schedule.repeat_interval)
+        schedule_interval = format_interval(_build_interval(schedule.repeat_value, schedule.repeat_unit))
     else:
         schedule_next_launch_time = "не запланировано"
         schedule_interval = None

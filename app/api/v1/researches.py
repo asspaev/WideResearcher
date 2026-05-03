@@ -22,6 +22,7 @@ from app.crud.research import (
     update_research_name,
     update_research_version_name,
 )
+from app.crud.research_schedule import delete_planned_schedule, upsert_research_schedule
 from app.models.research import Research
 from app.schemas.user import UserCookie
 from app.services.data_fetch import (
@@ -419,6 +420,7 @@ async def api_edit_research_step_settings(
 
 @router.post("/{research_id}/scheduler", name="api_save_scheduler")
 async def post_save_scheduler(
+    request: Request,
     research_id: int,
     repeat_type: str = Form(...),
     repeat_value: int = Form(...),
@@ -426,22 +428,63 @@ async def post_save_scheduler(
     user_cookie: UserCookie = Depends(get_user_cookie),
     session: AsyncSession = Depends(get_session),
 ):
-    """Сохранение настроек планировщика исследования в Redis"""
+    """Сохранение настроек планировщика исследования в БД и Redis"""
     research = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
     if research is None:
         return Response(status_code=404)
 
+    await upsert_research_schedule(session, research_id, repeat_type, repeat_value, repeat_unit)
+    logger.info(f"Scheduler saved: research={research_id} type={repeat_type} every={repeat_value} {repeat_unit}")
+
     cache = get_redis_cache()
     await cache.set(
         f"scheduler:{user_cookie.user_id}:{research_id}",
-        {
-            "repeat_type": repeat_type,
-            "repeat_value": repeat_value,
-            "repeat_unit": repeat_unit,
-        },
+        {"repeat_type": repeat_type, "repeat_value": repeat_value, "repeat_unit": repeat_unit},
         ttl=RESEARCH_SETTINGS_TTL,
     )
-    return Response(status_code=204)
+
+    detail = await get_research_detail(research, session)
+    return templates.TemplateResponse(
+        "includes/popups/scheduler_saved.html",
+        {
+            "request": request,
+            "research": research,
+            "has_schedule": detail["has_schedule"],
+            "schedule_next_launch_time": detail["schedule_next_launch_time"],
+            "schedule_interval": detail["schedule_interval"],
+        },
+    )
+
+
+@router.delete("/{research_id}/scheduler", name="api_delete_scheduler")
+async def delete_scheduler(
+    request: Request,
+    research_id: int,
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Удаление PLANNED записи планировщика и очистка кэша"""
+    research = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    if research is None:
+        return Response(status_code=404)
+
+    await delete_planned_schedule(session, research_id)
+    logger.info(f"Scheduler deleted: research={research_id} user={user_cookie.user_id}")
+
+    cache = get_redis_cache()
+    await cache.delete(f"scheduler:{user_cookie.user_id}:{research_id}")
+
+    detail = await get_research_detail(research, session)
+    return templates.TemplateResponse(
+        "includes/popups/scheduler_reset.html",
+        {
+            "request": request,
+            "research": research,
+            "has_schedule": detail["has_schedule"],
+            "schedule_next_launch_time": detail["schedule_next_launch_time"],
+            "schedule_interval": detail["schedule_interval"],
+        },
+    )
 
 
 @router.patch("/{research_id}/segments/{segment_index}", name="api_patch_research_segment")
