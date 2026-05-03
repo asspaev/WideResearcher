@@ -417,6 +417,33 @@ async def api_edit_research_step_settings(
     )
 
 
+@router.post("/{research_id}/scheduler", name="api_save_scheduler")
+async def post_save_scheduler(
+    research_id: int,
+    repeat_type: str = Form(...),
+    repeat_value: int = Form(...),
+    repeat_unit: str = Form(...),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Сохранение настроек планировщика исследования в Redis"""
+    research = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    if research is None:
+        return Response(status_code=404)
+
+    cache = get_redis_cache()
+    await cache.set(
+        f"scheduler:{user_cookie.user_id}:{research_id}",
+        {
+            "repeat_type": repeat_type,
+            "repeat_value": repeat_value,
+            "repeat_unit": repeat_unit,
+        },
+        ttl=RESEARCH_SETTINGS_TTL,
+    )
+    return Response(status_code=204)
+
+
 @router.patch("/{research_id}/segments/{segment_index}", name="api_patch_research_segment")
 async def patch_research_segment(
     research_id: int,

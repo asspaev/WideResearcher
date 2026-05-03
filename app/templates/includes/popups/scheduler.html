@@ -1,0 +1,62 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup new-model gap-24">
+        <div class="popup-header">
+            <h2>Планировщик исследований</h2>
+            <p>Настройте автоматический запуск исследования</p>
+        </div>
+        <form class="column gap-24" hx-post="{{ url_for('api_save_scheduler', research_id=research.research_id) }}"
+            hx-trigger="submit" hx-swap="none" autocomplete="off">
+            <div class="column gap-12">
+                <div class="field">
+                    <select name="repeat_type" class="input">
+                        <option value="deep" {% if scheduler and scheduler.repeat_type=='deep' %}selected{% endif %}>В
+                            глубину</option>
+                        <option value="start" {% if scheduler and scheduler.repeat_type=='start' %}selected{% endif %}>
+                            С нуля</option>
+                        <option value="current" {% if scheduler and scheduler.repeat_type=='current' %}selected{% endif
+                            %}>От текущего этапа</option>
+                    </select>
+                    <label>Тип повтора</label>
+                </div>
+                <div class="row gap-8">
+                    <div class="field" style="flex:1">
+                        <input type="number" name="repeat_value" min="1"
+                            value="{{ scheduler.repeat_value if scheduler else 1 }}" placeholder="1">
+                        <label>Повторять каждый</label>
+                    </div>
+                    <div class="field" style="flex:2">
+                        <select name="repeat_unit" class="input">
+                            <option value="minutes" {% if scheduler and scheduler.repeat_unit=='minutes' %}selected{%
+                                endif %}>Минуты</option>
+                            <option value="hours" {% if scheduler and scheduler.repeat_unit=='hours' %}selected{% endif
+                                %}>Часы</option>
+                            <option value="days" {% if not scheduler or scheduler.repeat_unit=='days' %}selected{% endif
+                                %}>Дни</option>
+                            <option value="weeks" {% if scheduler and scheduler.repeat_unit=='weeks' %}selected{% endif
+                                %}>Недели</option>
+                            <option value="months" {% if scheduler and scheduler.repeat_unit=='months' %}selected{%
+                                endif %}>Месяцы</option>
+                            <option value="years" {% if scheduler and scheduler.repeat_unit=='years' %}selected{% endif
+                                %}>Год</option>
+                        </select>
+                        <label>Единица времени</label>
+                    </div>
+                </div>
+            </div>
+            <div class="column gap-12">
+                <button type="submit" class="primary solid">Сохранить</button>
+                <div class="row gap-12">
+                    <a href="#" hx-get="{{ url_for('scheduler_popup', research_id=research.research_id) }}"
+                        hx-vals='{"reset": "true"}' hx-swap="none" class="button warning stroke col-max">
+                        Сбросить
+                    </a>
+                    <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" hx-swap="none"
+                        class="button text-hint stroke col-max">
+                        Отмена
+                    </a>
+                </div>
+            </div>
+        </form>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>

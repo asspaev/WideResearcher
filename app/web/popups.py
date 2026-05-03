@@ -323,6 +323,34 @@ async def get_delete_research(
     )
 
 
+@router.get("/researches/{research_id}/scheduler", name="scheduler_popup")
+async def get_scheduler_popup(
+    request: Request,
+    research_id: int,
+    reset: bool = False,
+    session: AsyncSession = Depends(get_session),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
+    """Рендер всплывающего окна планировщика исследования"""
+    research: Research | None = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    if research is None:
+        raise HTTPException(status_code=404)
+
+    scheduler = None
+    if not reset:
+        cache = get_redis_cache()
+        scheduler = await cache.get(f"scheduler:{user_cookie.user_id}:{research_id}")
+
+    return templates.TemplateResponse(
+        "includes/popups/scheduler.html",
+        {
+            "request": request,
+            "research": research,
+            "scheduler": scheduler,
+        },
+    )
+
+
 @router.get("/models/{model_id}/delete", name="delete_model")
 async def get_delete_model(
     request: Request,
