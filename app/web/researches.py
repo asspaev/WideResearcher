@@ -11,7 +11,7 @@ from app.core.research_stages import RESEARCH_STATUS_LABELS, STAGE_LABELS_ACTIVE
 from app.core.research_timers import compute_ws_timers, get_stage_timers
 from app.core.sql import get_session
 from app.core.templates import templates
-from app.crud.research import get_research_by_id, get_research_by_id_and_user_id
+from app.crud.research import get_all_versions_by_research_id, get_research_by_id, get_research_by_id_and_user_id
 from app.models.research import ResearchStatus
 from app.schemas.user import UserCookie
 from app.services.data_fetch import get_research_detail, get_researches_cards, research_step_settings_redis_key
@@ -137,6 +137,17 @@ async def get_research(
         step_has_settings = raw is not None
         step_settings = raw or {}
 
+    versions = await get_all_versions_by_research_id(session, research_id, user_cookie.user_id)
+    prev_version_id: int | None = None
+    next_version_id: int | None = None
+    for i, v in enumerate(versions):
+        if v.research_id == research_id:
+            if i > 0:
+                prev_version_id = versions[i - 1].research_id
+            if i < len(versions) - 1:
+                next_version_id = versions[i + 1].research_id
+            break
+
     return templates.TemplateResponse(
         "pages/research.html",
         {
@@ -149,6 +160,8 @@ async def get_research(
             "stage_labels_done": STAGE_LABELS_DONE,
             "step_has_settings": step_has_settings,
             "step_settings": step_settings,
+            "prev_version_id": prev_version_id,
+            "next_version_id": next_version_id,
             **detail,
         },
     )

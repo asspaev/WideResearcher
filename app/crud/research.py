@@ -9,6 +9,67 @@ from app.models.research import RESEARCH_STAGES, ResearchStatus
 from app.models.research_schedule import ScheduleStatus
 
 
+async def get_all_versions_by_research_id(
+    session: AsyncSession,
+    research_id: int,
+    user_id: int,
+) -> list[Research]:
+    """Возвращает все версии исследования (дерево), отсортированные сначала новые.
+
+    Args:
+        research_id: ID любого исследования из семейного дерева версий.
+        user_id: ID владельца исследований.
+
+    Returns:
+        Список всех связанных версий, отсортированных по meta_created_at убыванию.
+    """
+    # Идём вверх по дереву до корневого предка
+    current_id = research_id
+    seen: set[int] = set()
+    while True:
+        if current_id in seen:
+            break
+        seen.add(current_id)
+        result = await session.execute(
+            select(Research.research_parent_id).where(
+                Research.research_id == current_id,
+                Research.user_id == user_id,
+            )
+        )
+        parent_id = result.scalar_one_or_none()
+        if parent_id is None:
+            break
+        current_id = parent_id
+    root_id = current_id
+
+    # BFS от корня вниз — собираем все ID версий
+    all_ids: set[int] = set()
+    queue: list[int] = [root_id]
+    while queue:
+        new_ids = [i for i in queue if i not in all_ids]
+        if not new_ids:
+            break
+        all_ids.update(new_ids)
+        result = await session.execute(
+            select(Research.research_id).where(
+                Research.research_parent_id.in_(new_ids),
+                Research.user_id == user_id,
+            )
+        )
+        queue = list(result.scalars().all())
+
+    # Загружаем все версии, отсортированные сначала новые
+    result = await session.execute(
+        select(Research)
+        .where(
+            Research.research_id.in_(all_ids),
+            Research.archived_at.is_(None),
+        )
+        .order_by(desc(Research.meta_created_at))
+    )
+    return list(result.scalars().all())
+
+
 async def get_planned_schedule_by_research_id(
     session: AsyncSession,
     research_id: int,
