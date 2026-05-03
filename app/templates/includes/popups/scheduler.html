@@ -46,8 +46,8 @@
             <div class="column gap-12">
                 <button type="submit" class="primary solid">Сохранить</button>
                 <div class="row gap-12">
-                    <a href="#" hx-get="{{ url_for('scheduler_popup', research_id=research.research_id) }}"
-                        hx-vals='{"reset": "true"}' hx-swap="none" class="button warning stroke col-max">
+                    <a href="#" hx-delete="{{ url_for('api_delete_scheduler', research_id=research.research_id) }}"
+                        hx-swap="none" class="button warning stroke col-max">
                         Сбросить
                     </a>
                     <a href="#" hx-trigger="click" hx-get="{{ url_for('hide') }}" hx-swap="none"

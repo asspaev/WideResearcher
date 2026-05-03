@@ -1,0 +1,28 @@
+<div id="scheduler-block" class="b-1 p-32 research-block" {% if oob %} hx-swap-oob="true" {% endif %}>
+    <h3>Планировщик</h3>
+    {% if has_schedule %}
+    <div class="research-properties">
+        <div class="research-property-item">
+            <p>{{ schedule_next_launch_time }}</p>
+            <span>Следующее исследование начнётся</span>
+        </div>
+        {% if schedule_interval %}
+        <div class="research-property-item">
+            <p>{{ schedule_interval }}</p>
+            <span>Следующее исследование повторяется</span>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="research-properties">
+        <div class="research-property-item">
+            <p>Не запланировано</p>
+            <span>Следующее исследование</span>
+        </div>
+    </div>
+    {% endif %}
+    <div class="buttons-col">
+        <button class="text-hint stroke" hx-get="{{ url_for('scheduler_popup', research_id=research.research_id) }}"
+            hx-swap="none">Настроить</button>
+    </div>
+</div>

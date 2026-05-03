@@ -8,6 +8,7 @@ from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.model import get_model_by_id, get_models_by_user_id
 from app.crud.research import get_all_versions_by_research_id, get_research_by_id, get_research_by_id_and_user_id
+from app.crud.research_schedule import get_schedule_by_research_id
 from app.models import Model, Research
 from app.schemas.user import UserCookie
 from app.services.data_fetch import research_settings_redis_key, research_step_settings_redis_key
@@ -340,6 +341,14 @@ async def get_scheduler_popup(
     if not reset:
         cache = get_redis_cache()
         scheduler = await cache.get(f"scheduler:{user_cookie.user_id}:{research_id}")
+        if scheduler is None:
+            db_schedule = await get_schedule_by_research_id(session, research_id)
+            if db_schedule is not None:
+                scheduler = {
+                    "repeat_type": db_schedule.repeat_type,
+                    "repeat_value": db_schedule.repeat_value,
+                    "repeat_unit": db_schedule.repeat_unit,
+                }
 
     return templates.TemplateResponse(
         "includes/popups/scheduler.html",

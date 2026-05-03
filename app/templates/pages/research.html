@@ -259,7 +259,7 @@
                             hx-trigger="click">Переименовать</button>
                         <button class="primary solid flex-1"
                             hx-get="{{ url_for('research_versions', research_id=research.research_id) }}"
-                            hx-trigger="click">Список версий</button>
+                            hx-swap="none" hx-trigger="click">Список версий</button>
                     </div>
                 </div>
 
@@ -315,36 +315,7 @@
                     </button>
                 </div>
 
-                <div class="b-1 p-32 research-block">
-                    <h3>Планировщик</h3>
-                    {% if has_schedule %}
-                    <div class="research-properties">
-                        <div class="research-property-item">
-                            <p>{{ schedule_next_launch_time }}</p>
-                            <span>Следующее исследование начнётся</span>
-                        </div>
-                        {% if schedule_interval %}
-                        <div class="research-property-item">
-                            <p>{{ schedule_interval }}</p>
-                            <span>Следующее исследование повторяется</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% else %}
-                    <div class="research-properties">
-                        <div class="research-property-item">
-                            <p>Не запланировано</p>
-                            <span>Следующее исследование</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                    <div class="buttons-col">
-                        <button class="primary solid"
-                            hx-get="{{ url_for('scheduler_popup', research_id=research.research_id) }}"
-                            hx-swap="none">Настроить</button>
-                        <button class="warning stroke">Удалить запланированные исследования</button>
-                    </div>
-                </div>
+                {% include 'includes/scheduler_block.html' %}
 
             </div>
 
