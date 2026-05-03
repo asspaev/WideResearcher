@@ -30,9 +30,8 @@
 
                 <div class="b-1 p-32 content-research" data-research-id="{{ research.research_id }}">
                     {% for seg in segments %}
-                    <div class="segment-row segment-{{ seg.type }}"
-                         data-segment-index="{{ loop.index0 }}"
-                         data-comment="{{ seg.comment or '' }}">
+                    <div class="segment-row segment-{{ seg.type }}" data-segment-index="{{ loop.index0 }}"
+                        data-comment="{{ seg.comment or '' }}">
                         <span class="segment-tag">
                             {% if seg.type in ['h1', 'h2', 'h3'] %}{{ seg.type }}{% endif %}
                         </span>
@@ -57,13 +56,15 @@
                                 {% set class = "" %}
                                 {% include 'includes/svg/xmark.svg' %}
                             </button>
-                            <button class="segment-action-btn btn-like{% if seg.is_like %} active{% endif %}" title="Нравится">
+                            <button class="segment-action-btn btn-like{% if seg.is_like %} active{% endif %}"
+                                title="Нравится">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
                                 {% set class = "" %}
                                 {% include 'includes/svg/scores/like.svg' %}
                             </button>
-                            <button class="segment-action-btn btn-dislike{% if seg.is_dislike %} active-dislike{% endif %}"
+                            <button
+                                class="segment-action-btn btn-dislike{% if seg.is_dislike %} active-dislike{% endif %}"
                                 title="Не нравится">
                                 {% set width = 16 %}
                                 {% set height = 16 %}
@@ -241,18 +242,21 @@
                 <div class="b-1 p-32 research-block">
                     <h3>Версионирование</h3>
                     <div class="version-slider">
-                        <button class="version-arrow"
-                            {% if not prev_version_id %}disabled{% endif %}
-                            {% if prev_version_id %}onclick="location.href='{{ url_for('research', research_id=prev_version_id) }}'"{% endif %}>&#8249;</button>
-                        <span id="research-version-name" class="version-name">{{ research.research_version_name }}</span>
-                        <button class="version-arrow"
-                            {% if not next_version_id %}disabled{% endif %}
-                            {% if next_version_id %}onclick="location.href='{{ url_for('research', research_id=next_version_id) }}'"{% endif %}>&#8250;</button>
+                        <button class="version-arrow" {% if not prev_version_id %}disabled{% endif %} {% if
+                            prev_version_id
+                            %}onclick="location.href='{{ url_for('research', research_id=prev_version_id) }}'" {% endif
+                            %}>&#8249;</button>
+                        <span id="research-version-name" class="version-name">{{ research.research_version_name
+                            }}</span>
+                        <button class="version-arrow" {% if not next_version_id %}disabled{% endif %} {% if
+                            next_version_id
+                            %}onclick="location.href='{{ url_for('research', research_id=next_version_id) }}'" {% endif
+                            %}>&#8250;</button>
                     </div>
                     <div class="buttons-row">
                         <button class="primary solid flex-1"
-                            hx-get="{{ url_for('edit_version', research_id=research.research_id) }}"
-                            hx-swap="none" hx-trigger="click">Переименовать</button>
+                            hx-get="{{ url_for('edit_version', research_id=research.research_id) }}" hx-swap="none"
+                            hx-trigger="click">Переименовать</button>
                         <button class="primary solid flex-1"
                             hx-get="{{ url_for('research_versions', research_id=research.research_id) }}"
                             hx-trigger="click">Список версий</button>
@@ -306,8 +310,7 @@
                         Посмотреть все настройки
                     </button>
                     <button class="button text-hint stroke"
-                        hx-get="{{ url_for('view_research_prompt', research_id=research.research_id) }}"
-                        hx-swap="none">
+                        hx-get="{{ url_for('view_research_prompt', research_id=research.research_id) }}" hx-swap="none">
                         Посмотреть промпт
                     </button>
                 </div>
@@ -336,8 +339,10 @@
                     </div>
                     {% endif %}
                     <div class="buttons-col">
-                        <button class="primary solid">Настроить</button>
-                        <button class="text-hint stroke">Удалить запланированные исследования</button>
+                        <button class="primary solid"
+                            hx-get="{{ url_for('scheduler_popup', research_id=research.research_id) }}"
+                            hx-swap="none">Настроить</button>
+                        <button class="warning stroke">Удалить запланированные исследования</button>
                     </div>
                 </div>
 
