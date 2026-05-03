@@ -7,7 +7,7 @@ from app.core.redis_cache import get_redis_cache
 from app.core.sql import get_session
 from app.core.templates import templates
 from app.crud.model import get_model_by_id, get_models_by_user_id
-from app.crud.research import get_research_by_id, get_research_by_id_and_user_id
+from app.crud.research import get_all_versions_by_research_id, get_research_by_id, get_research_by_id_and_user_id
 from app.models import Model, Research
 from app.schemas.user import UserCookie
 from app.services.data_fetch import research_settings_redis_key, research_step_settings_redis_key
@@ -141,6 +141,32 @@ async def get_popup_edit_research_next_step_settings(
             "locked_parent": str(research_id),
             "locked_parent_label": research.research_version_name,
             **saved,
+        },
+    )
+
+
+@router.get("/researches/{research_id}/versions", name="research_versions")
+async def get_research_versions(
+    request: Request,
+    research_id: int,
+    session: AsyncSession = Depends(get_session),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+):
+    """Рендер всплывающего окна со списком версий исследования"""
+    research = await get_research_by_id_and_user_id(session, research_id, user_cookie.user_id)
+    if research is None:
+        raise HTTPException(status_code=404)
+
+    versions = await get_all_versions_by_research_id(session, research_id, user_cookie.user_id)
+    version_map = {v.research_id: v.research_version_name for v in versions}
+
+    return templates.TemplateResponse(
+        "includes/popups/versions.html",
+        {
+            "request": request,
+            "versions": versions,
+            "current_research_id": research_id,
+            "version_map": version_map,
         },
     )
 

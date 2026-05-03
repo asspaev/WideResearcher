@@ -1,0 +1,48 @@
+<div hx-swap-oob="true" id="popup-overlay" class="popup-overlay">
+    <div id="popup" class="popup versions-popup">
+        <h2>Выбор версии исследования</h2>
+        <div class="versions-grid">
+            {% for version in versions %}
+            {% if version.research_id == current_research_id %}
+            <button class="version-item active"
+                hx-get="{{ url_for('hide') }}" hx-trigger="click">
+                <div class="version-item-icon">
+                    {% set width = 20 %}
+                    {% set height = 20 %}
+                    {% set class = "" %}
+                    {% include 'includes/svg/research.svg' %}
+                </div>
+                <div class="version-item-info">
+                    <span class="version-item-name">{{ version.research_version_name }}</span>
+                    {% if version.research_parent_id and version.research_parent_id in version_map %}
+                    <div class="version-item-parent">
+                        <span class="parent-label">Унаследована от</span>
+                        <span class="parent-name">{{ version_map[version.research_parent_id] }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </button>
+            {% else %}
+            <a href="{{ url_for('research', research_id=version.research_id) }}" class="version-item">
+                <div class="version-item-icon">
+                    {% set width = 20 %}
+                    {% set height = 20 %}
+                    {% set class = "" %}
+                    {% include 'includes/svg/research.svg' %}
+                </div>
+                <div class="version-item-info">
+                    <span class="version-item-name">{{ version.research_version_name }}</span>
+                    {% if version.research_parent_id and version.research_parent_id in version_map %}
+                    <div class="version-item-parent">
+                        <span class="parent-label">Унаследована от</span>
+                        <span class="parent-name">{{ version_map[version.research_parent_id] }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% include 'includes/popup_close.html' %}
+    </div>
+</div>

@@ -2318,6 +2318,102 @@ h4 {
 
 /* ===== Segment comment popup ===== */
 
+/* ===== Version Popup ===== */
+
+.popup.versions-popup {
+    width: 900px;
+    max-width: 900px;
+}
+
+.versions-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+}
+
+.version-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    height: 56px;
+    border: 1px solid var(--color-text-body);
+    border-radius: var(--corner-small);
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    color: var(--color-white-default);
+    text-decoration: none;
+}
+
+.version-item:hover {
+    background-color: var(--color-primary-default);
+    border-color: var(--color-primary-default);
+    color: var(--color-black-default);
+}
+
+.version-item.active {
+    background-color: var(--color-primary-default);
+    border-color: var(--color-primary-default);
+    color: var(--color-black-default);
+}
+
+.version-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.version-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.version-item-name {
+    font-size: 16px;
+    font-weight: 600;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.version-item-parent {
+    display: flex;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.version-item-parent .parent-label {
+    color: var(--color-text-body);
+}
+
+.version-item-parent .parent-name {
+    color: var(--color-text-hint);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.version-item:hover .parent-label,
+.version-item:hover .parent-name,
+.version-item.active .parent-label,
+.version-item.active .parent-name {
+    color: var(--color-black-default);
+}
+
+.version-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* ===================== */
+
 .segment-comment-popup {
     width: 480px;
     max-width: 480px;
