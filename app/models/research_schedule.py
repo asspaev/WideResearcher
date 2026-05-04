@@ -1,11 +1,11 @@
 import enum
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Interval, String
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
+from .base import Base, ResearchSettingsMixin
 
 
 class ScheduleStatus(enum.Enum):
@@ -13,7 +13,7 @@ class ScheduleStatus(enum.Enum):
     COMPLETED = "COMPLETED"
 
 
-class ResearchSchedule(Base):
+class ResearchSchedule(ResearchSettingsMixin, Base):
     """ORM-модель расписания исследований"""
 
     # ID-параметры
@@ -28,4 +28,4 @@ class ResearchSchedule(Base):
     status: Mapped[ScheduleStatus] = mapped_column(ENUM(ScheduleStatus, name="schedule_status_enum"), nullable=False)
 
     # RELATIONSHIPS
-    research = relationship("Research", back_populates="schedules")
+    research = relationship("Research", back_populates="schedules", foreign_keys=[research_id])
