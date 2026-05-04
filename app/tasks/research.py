@@ -16,7 +16,7 @@ def on_worker_ready(sender, **kwargs):
 
 
 @celery_app.task(name="research.run")
-def run_research(research_id: int) -> None:
+def run_research(research_id: int, triggered_by: str = "manual") -> None:
     asyncio.run(_run_research(research_id))
 
 

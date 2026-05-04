@@ -72,6 +72,22 @@ services:
       - postgres
       - searxng
 
+  scheduler:
+    build: .
+    container_name: wideresearcher-scheduler
+    restart: always
+    command: ["python", "-m", "app.scheduler"]
+    networks:
+      - wideresearcher-network
+    volumes:
+      - ./app:/workdir/app
+      - ./.env:/workdir/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+      - postgres
+
 networks:
   wideresearcher-network:
 
