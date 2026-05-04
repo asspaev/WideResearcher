@@ -117,6 +117,7 @@
                                 <label>Нежелательные зоны поиска</label>
                             </div>
                         </div>
+                        {% if not hide_inheritance %}
                         <div class="column gap-12">
                             <h3 class="settings-col-title">Наследование</h3>
                             <div class="field">
@@ -134,6 +135,7 @@
                                 <label>Предыдущее исследование</label>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
 
                     <!-- Колонка 3: Настройки исследования -->

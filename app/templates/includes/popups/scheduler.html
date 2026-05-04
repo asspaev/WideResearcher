@@ -6,6 +6,25 @@
         </div>
         <form class="column gap-24" hx-post="{{ url_for('api_save_scheduler', research_id=research.research_id) }}"
             hx-trigger="submit" hx-swap="none" autocomplete="off">
+            <div id="scheduler-settings-inputs">
+                {% if scheduler_settings %}
+                {% if scheduler_settings.model_answer %}<input type="hidden" name="model_answer" value="{{ scheduler_settings.model_answer }}">{% endif %}
+                {% if scheduler_settings.model_search %}<input type="hidden" name="model_search" value="{{ scheduler_settings.model_search }}">{% endif %}
+                {% if scheduler_settings.model_direction %}<input type="hidden" name="model_direction" value="{{ scheduler_settings.model_direction }}">{% endif %}
+                {% if scheduler_settings.model_embed %}<input type="hidden" name="model_embed" value="{{ scheduler_settings.model_embed }}">{% endif %}
+                {% if scheduler_settings.model_reranker %}<input type="hidden" name="model_reranker" value="{{ scheduler_settings.model_reranker }}">{% endif %}
+                {% if scheduler_settings.n_async_parse is not none %}<input type="hidden" name="n_async_parse" value="{{ scheduler_settings.n_async_parse }}">{% endif %}
+                {% if scheduler_settings.scenario_type %}<input type="hidden" name="scenario_type" value="{{ scheduler_settings.scenario_type }}">{% endif %}
+                {% if scheduler_settings.search_areas %}<input type="hidden" name="search_areas" value="{{ scheduler_settings.search_areas }}">{% endif %}
+                {% if scheduler_settings.exclude_search_areas %}<input type="hidden" name="exclude_search_areas" value="{{ scheduler_settings.exclude_search_areas }}">{% endif %}
+                {% if scheduler_settings.n_vectors is not none %}<input type="hidden" name="n_vectors" value="{{ scheduler_settings.n_vectors }}">{% endif %}
+                {% if scheduler_settings.n_search_queries is not none %}<input type="hidden" name="n_search_queries" value="{{ scheduler_settings.n_search_queries }}">{% endif %}
+                {% if scheduler_settings.n_top_search_results is not none %}<input type="hidden" name="n_top_search_results" value="{{ scheduler_settings.n_top_search_results }}">{% endif %}
+                {% if scheduler_settings.n_top_bm25_chunks is not none %}<input type="hidden" name="n_top_bm25_chunks" value="{{ scheduler_settings.n_top_bm25_chunks }}">{% endif %}
+                {% if scheduler_settings.n_top_embed_chunks is not none %}<input type="hidden" name="n_top_embed_chunks" value="{{ scheduler_settings.n_top_embed_chunks }}">{% endif %}
+                {% if scheduler_settings.n_top_rerank_chunks is not none %}<input type="hidden" name="n_top_rerank_chunks" value="{{ scheduler_settings.n_top_rerank_chunks }}">{% endif %}
+                {% endif %}
+            </div>
             <div class="column gap-12">
                 <div class="field">
                     <select name="repeat_type" class="input">
@@ -44,7 +63,18 @@
                 </div>
             </div>
             <div class="column gap-12">
-                <button type="submit" class="primary solid">Сохранить</button>
+                <div class="buttons-row">
+                    <a id="scheduler-settings-btn" href="#" hx-swap="none" hx-trigger="click"
+                        hx-get="{{ url_for('edit_scheduler_settings', research_id=research.research_id) }}"
+                        hx-vals='{"previous_screen": "scheduler"}'
+                        class="button border-icon{% if scheduler_has_settings %} active{% endif %}">
+                        {% set width = 24 %}
+                        {% set height = 24 %}
+                        {% set class = "color-text-body" %}
+                        {% include 'includes/svg/settings.svg' %}
+                    </a>
+                    <button type="submit" class="primary solid flex-1">Сохранить</button>
+                </div>
                 <div class="row gap-12">
                     <a href="#" hx-delete="{{ url_for('api_delete_scheduler', research_id=research.research_id) }}"
                         hx-swap="none" class="button warning stroke col-max">
