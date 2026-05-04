@@ -18,7 +18,7 @@ class ResearchSchedule(ResearchSettingsMixin, Base):
 
     # ID-параметры
     schedule_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    research_id: Mapped[int] = mapped_column(ForeignKey("researches.research_id"), nullable=False, unique=True)
+    research_id: Mapped[int] = mapped_column(ForeignKey("researches.research_id"), nullable=False)
 
     # SCHEDULE-параметры
     scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
