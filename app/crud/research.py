@@ -170,7 +170,12 @@ async def get_all_researches_with_schedules_by_user_id(
     # LEFT OUTER JOIN
     stmt = (
         select(Research, ResearchSchedule)
-        .join(ResearchSchedule, Research.research_id == ResearchSchedule.research_id, isouter=True)
+        .join(
+            ResearchSchedule,
+            (Research.research_id == ResearchSchedule.research_id)
+            & (ResearchSchedule.status == ScheduleStatus.PLANNED),
+            isouter=True,
+        )
         .where(Research.user_id == user_id)
     )
 
