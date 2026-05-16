@@ -1,8 +1,10 @@
+import asyncio
 import copy
 import re
+import time
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +25,7 @@ from app.crud.research import (
     update_research_version_name,
 )
 from app.crud.research_schedule import delete_planned_schedule, upsert_research_schedule
-from app.models.research import Research
+from app.models.research import Research, ResearchStatus
 from app.schemas.user import UserCookie
 from app.services.data_fetch import (
     get_research_detail,
@@ -198,6 +200,171 @@ async def post_create_research(
     response = Response(status_code=204)
     response.headers["HX-Redirect"] = f"/researches/{research.research_id}"
     return response
+
+
+_SEGMENT_PREFIX = {
+    "h1": "# ",
+    "h2": "## ",
+    "h3": "### ",
+    "h4": "#### ",
+    "h5": "##### ",
+    "h6": "###### ",
+    "li": "- ",
+    "p": "",
+}
+
+
+def _segments_to_answer_and_sources(body_finish: dict | list | None) -> tuple[str, list[str]]:
+    """Восстанавливает Markdown-ответ из сегментов и собирает уникальные URL цитат.
+
+    Args:
+        body_finish: Поле research.research_body_finish (dict с ключом "segments" либо
+            устаревший list сегментов).
+
+    Returns:
+        Кортеж (answer_text, sources) — текст ответа в Markdown-подобном виде и
+        список уникальных URL-ссылок в порядке появления в тексте.
+    """
+    if not body_finish:
+        return "", []
+    if isinstance(body_finish, list):
+        segments = body_finish
+    elif isinstance(body_finish, dict):
+        segments = body_finish.get("segments") or []
+    else:
+        return "", []
+
+    parts: list[str] = []
+    for seg in segments:
+        content = seg.get("content", "") if isinstance(seg, dict) else ""
+        prefix = _SEGMENT_PREFIX.get(seg.get("type", "p") if isinstance(seg, dict) else "p", "")
+        parts.append(prefix + content)
+    answer_text = "\n\n".join(parts)
+
+    sources: list[str] = []
+    seen: set[str] = set()
+    for url in re.findall(r'<a\s+href="([^"]+)"', answer_text):
+        if url not in seen:
+            seen.add(url)
+            sources.append(url)
+    return answer_text, sources
+
+
+@router.post("/run-sync", name="api_run_research_sync")
+async def post_run_research_sync(
+    prompt: str = Form(...),
+    timeout_seconds: int = Form(1800),
+    poll_interval_seconds: float = Form(5.0),
+    user_cookie: UserCookie = Depends(get_user_cookie),
+    session: AsyncSession = Depends(get_session),
+):
+    """Запускает исследование и блокирующе ждёт завершения, возвращая ответ и ссылки.
+
+    Эндпоинт нужен для бенчмарка и интеграционных тестов: эмулирует синхронный
+    DeepResearcher (ввод → текст + источники). Настройки моделей и пайплайна берутся
+    из последних сохранённых в Redis (через `get_research_settings`).
+
+    Args:
+        prompt: Текст запроса пользователя.
+        timeout_seconds: Максимальное время ожидания завершения (по умолчанию 30 минут).
+        poll_interval_seconds: Период опроса БД (по умолчанию 5 секунд).
+
+    Returns:
+        JSON со status="complete"|"error"|"timeout", answer_text, sources,
+        duration_seconds, research_id, error.
+    """
+    settings = await get_research_settings(user_cookie.user_id, session, get_redis_cache())
+    model_answer = settings.get("model_answer")
+    model_search = settings.get("model_search")
+    if not model_answer or not model_search:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Не настроены модели. Откройте веб-интерфейс и сохраните настройки нового исследования."},
+        )
+
+    research_name = prompt[:_MAX_RESEARCH_NAME_LEN]
+    research: Research = await create_research(
+        session,
+        user_id=user_cookie.user_id,
+        research_name=research_name,
+        research_version_name="Версия 1",
+        model_id_answer=model_answer,
+        model_id_search=model_search,
+        model_id_direction=settings.get("model_direction"),
+        model_id_embed=settings.get("model_embed"),
+        model_id_reranker=settings.get("model_reranker"),
+        research_body_start={"prompt": research_name, "query": research_name},
+        settings_n_async_parse=settings.get("n_async_parse"),
+        settings_scenario_type=settings.get("scenario_type"),
+        settings_search_areas=settings.get("search_areas"),
+        settings_exclude_search_areas=settings.get("exclude_search_areas"),
+        settings_n_vectors=settings.get("n_vectors"),
+        settings_n_search_queries=settings.get("n_search_queries"),
+        settings_n_top_search_results=settings.get("n_top_search_results"),
+        settings_n_top_bm25_chunks=settings.get("n_top_bm25_chunks"),
+        settings_n_top_embed_chunks=settings.get("n_top_embed_chunks"),
+        settings_n_top_rerank_chunks=settings.get("n_top_rerank_chunks"),
+    )
+    logger.info(
+        f"Sync research created: {research.research_id} for user {user_cookie.user_id} {user_cookie.user_login}"
+    )
+
+    celery_app.send_task("research.run", args=[research.research_id])
+    logger.info(f"Celery task sent: research.run({research.research_id})")
+
+    deadline = time.monotonic() + max(timeout_seconds, 1)
+    poll = max(poll_interval_seconds, 0.5)
+    research_id = research.research_id
+    while research.research_status == ResearchStatus.IN_PROCESS:
+        if time.monotonic() > deadline:
+            logger.warning(f"Sync research timeout: {research_id} after {timeout_seconds}s")
+            return JSONResponse(
+                status_code=504,
+                content={
+                    "research_id": research_id,
+                    "status": "timeout",
+                    "error": f"Research did not finish in {timeout_seconds}s",
+                    "answer_text": "",
+                    "sources": [],
+                    "duration_seconds": None,
+                },
+            )
+        await asyncio.sleep(poll)
+        # End any implicit read snapshot so we observe the worker's commits.
+        await session.rollback()
+        refreshed = await get_research_by_id(session, research_id, include_archived=True)
+        if refreshed is None:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "research_id": research_id,
+                    "status": "error",
+                    "error": "Research disappeared during execution",
+                    "answer_text": "",
+                    "sources": [],
+                    "duration_seconds": None,
+                },
+            )
+        research = refreshed
+
+    if research.research_status == ResearchStatus.ERROR:
+        return {
+            "research_id": research_id,
+            "status": "error",
+            "error": research.research_error_body or "unknown error",
+            "answer_text": "",
+            "sources": [],
+            "duration_seconds": research.research_duration_seconds,
+        }
+
+    answer_text, sources = _segments_to_answer_and_sources(research.research_body_finish)
+    return {
+        "research_id": research_id,
+        "status": "complete",
+        "answer_text": answer_text,
+        "sources": sources,
+        "duration_seconds": research.research_duration_seconds,
+    }
 
 
 @router.put("/{research_id}", name="api_update_research")
