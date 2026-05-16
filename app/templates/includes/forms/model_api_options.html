@@ -19,4 +19,9 @@
             value="{{ model.model_max_tokens if model else 8000 }}">
         <label>Max Tokens</label>
     </div>
+    <div class="field">
+        <input name="model_n_async" type="number" placeholder="1" min="1"
+            value="{{ model.model_n_async if model else 1 }}">
+        <label>Параллельных запросов</label>
+    </div>
 </div>

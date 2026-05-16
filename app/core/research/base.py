@@ -37,4 +37,5 @@ class ResearchStepBase(ABC):
             model_name=model.model_api_model,
             base_url=model.model_base_url,
             api_key=model.model_key_api,
+            n_async=model.model_n_async,
         )

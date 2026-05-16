@@ -1,4 +1,5 @@
-from typing import Any, Coroutine, TypeVar
+import asyncio
+from typing import Any, Awaitable, Callable, Coroutine, TypeVar
 
 from loguru import logger
 from openai import AsyncOpenAI
@@ -9,6 +10,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.sql import get_sql
 from app.crud.model_output import create_model_output, update_model_output
 from app.models.model_output import ModelResponseStatus
 
@@ -35,6 +37,7 @@ class LLMClient:
         model_name: str,
         base_url: str,
         api_key: str | None = None,
+        n_async: int = 1,
     ) -> None:
         """Инициализирует клиент.
 
@@ -43,8 +46,11 @@ class LLMClient:
             base_url: Базовый URL API (например, "https://api.openai.com/v1").
             api_key: API-ключ. Если None — подставляется заглушка "none"
                      (для локальных серверов вроде Ollama, которые ключ игнорируют).
+            n_async: Максимальное число одновременно выполняемых запросов в
+                методах ``*_many`` (управление конкурентностью через семафор).
         """
         self.model_name = model_name
+        self.n_async = max(1, int(n_async))
         self._base_url = base_url
         self._api_key = api_key or "none"
         self._client = AsyncOpenAI(
@@ -111,6 +117,45 @@ class LLMClient:
                 error_body=str(e),
             )
             raise LLMGenerationError(f"Ошибка при генерации ответа моделью {self.model_name}: {e}", cause=e) from e
+
+    async def _run_with_tracking_isolated(
+        self,
+        coro_factory: Callable[[], Awaitable[Any]],
+        model_input: dict,
+        model_id: int,
+        research_id: int,
+        step_type: str,
+    ) -> Any:
+        """Аналог ``_run_with_tracking``, но открывает свою AsyncSession.
+
+        Нужен для параллельных вызовов: одна сессия SQLAlchemy не может
+        безопасно использоваться из нескольких корутин одновременно, поэтому
+        каждая задача в ``*_many`` методах получает свою независимую сессию.
+
+        Args:
+            coro_factory: Фабрика корутины — вызывается внутри сессии, чтобы
+                ленив создавать корутину (важно для повторных запусков).
+            model_input: Данные запроса для сохранения в БД.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
+
+        Returns:
+            Результат корутины.
+
+        Raises:
+            LLMGenerationError: При ошибке запроса к модели.
+        """
+        session_factory = get_sql().session_factory
+        async with session_factory() as session:
+            return await self._run_with_tracking(
+                coro=coro_factory(),
+                model_input=model_input,
+                session=session,
+                model_id=model_id,
+                research_id=research_id,
+                step_type=step_type,
+            )
 
     async def _do_embed(self, text: str) -> list[float]:
         response = await self._client.embeddings.create(
@@ -245,4 +290,155 @@ class LLMClient:
             model_id=model_id,
             research_id=research_id,
             step_type=step_type,
+        )
+
+    async def _gather_many(
+        self,
+        items: list[Any],
+        call_for: Callable[[Any], Awaitable[Any]],
+        model_input_for: Callable[[Any], dict],
+        model_id: int,
+        research_id: int,
+        step_type: str,
+        return_exceptions: bool,
+    ) -> list[Any]:
+        """Запускает корутины параллельно с ограничением ``self.n_async`` и трекингом.
+
+        Args:
+            items: Список входных данных, по одному элементу на запрос.
+            call_for: Функция, по элементу собирающая Awaitable с запросом.
+            model_input_for: Функция, по элементу формирующая dict для записи в БД.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
+            return_exceptions: Если True — исключения возвращаются как элементы
+                списка результатов; иначе первое исключение перевыбрасывается.
+
+        Returns:
+            Список результатов в порядке ``items``. При ``return_exceptions=True``
+            на месте упавших задач — экземпляры ``LLMGenerationError``.
+        """
+        if not items:
+            return []
+
+        semaphore = asyncio.Semaphore(self.n_async)
+
+        async def _task(item: Any) -> Any:
+            async with semaphore:
+                return await self._run_with_tracking_isolated(
+                    coro_factory=lambda it=item: call_for(it),
+                    model_input=model_input_for(item),
+                    model_id=model_id,
+                    research_id=research_id,
+                    step_type=step_type,
+                )
+
+        logger.debug(
+            f"LLMClient: gather_many model={self.model_name} step={step_type} "
+            f"items={len(items)} n_async={self.n_async}"
+        )
+        return await asyncio.gather(*(_task(it) for it in items), return_exceptions=return_exceptions)
+
+    async def generate_many(
+        self,
+        contexts: list[list[dict]],
+        model_id: int,
+        research_id: int,
+        step_type: str,
+        return_exceptions: bool = True,
+    ) -> list[str | LLMGenerationError]:
+        """Параллельно отправляет несколько запросов на генерацию текста.
+
+        Ожидает завершения всех ``len(contexts)`` запросов, прежде чем вернуть
+        результат. Конкурентность ограничена ``self.n_async``.
+
+        Args:
+            contexts: Список контекстов (каждый — список сообщений OpenAI Chat).
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
+            return_exceptions: Если True (по умолчанию) — ошибки возвращаются
+                как ``LLMGenerationError`` в соответствующих позициях.
+
+        Returns:
+            Список текстов (или исключений) в порядке ``contexts``.
+        """
+        return await self._gather_many(
+            items=contexts,
+            call_for=lambda ctx: self._do_generate(ctx),
+            model_input_for=lambda ctx: {"messages": ctx},
+            model_id=model_id,
+            research_id=research_id,
+            step_type=step_type,
+            return_exceptions=return_exceptions,
+        )
+
+    async def embed_many(
+        self,
+        texts: list[str],
+        model_id: int,
+        research_id: int,
+        step_type: str,
+        return_exceptions: bool = True,
+    ) -> list[list[float] | LLMGenerationError]:
+        """Параллельно получает эмбеддинги для нескольких текстов.
+
+        Ожидает завершения всех ``len(texts)`` запросов, прежде чем вернуть
+        результат. Конкурентность ограничена ``self.n_async``.
+
+        Args:
+            texts: Список текстов для эмбеддинга.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
+            return_exceptions: Если True (по умолчанию) — ошибки возвращаются
+                как ``LLMGenerationError`` в соответствующих позициях.
+
+        Returns:
+            Список векторов (или исключений) в порядке ``texts``.
+        """
+        return await self._gather_many(
+            items=texts,
+            call_for=lambda t: self._do_embed(t),
+            model_input_for=lambda t: {"text": t},
+            model_id=model_id,
+            research_id=research_id,
+            step_type=step_type,
+            return_exceptions=return_exceptions,
+        )
+
+    async def generate_structured_many(
+        self,
+        contexts: list[list[dict]],
+        output_type: type[T],
+        model_id: int,
+        research_id: int,
+        step_type: str,
+        return_exceptions: bool = True,
+    ) -> list[T | LLMGenerationError]:
+        """Параллельно отправляет несколько запросов на структурированный ответ.
+
+        Ожидает завершения всех ``len(contexts)`` запросов, прежде чем вернуть
+        результат. Конкурентность ограничена ``self.n_async``.
+
+        Args:
+            contexts: Список контекстов в формате OpenAI Chat.
+            output_type: Pydantic-модель, которую возвращает каждая генерация.
+            model_id: ID модели.
+            research_id: ID исследования.
+            step_type: Тип шага пайплайна.
+            return_exceptions: Если True (по умолчанию) — ошибки возвращаются
+                как ``LLMGenerationError`` в соответствующих позициях.
+
+        Returns:
+            Список экземпляров ``output_type`` (или исключений) в порядке ``contexts``.
+        """
+        return await self._gather_many(
+            items=contexts,
+            call_for=lambda ctx: self._do_generate_structured(ctx, output_type),
+            model_input_for=lambda ctx: {"messages": ctx},
+            model_id=model_id,
+            research_id=research_id,
+            step_type=step_type,
+            return_exceptions=return_exceptions,
         )

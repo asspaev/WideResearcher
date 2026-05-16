@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.crud.research import update_research_embed_chunks, update_research_embed_summary, update_research_stage
 from app.models.chunk_summary import ChunkSummary
 from app.models.research import RESEARCH_STAGES
+from app.services.llm_client import LLMGenerationError
 
 from .base import ScoringPagesStepBase
 
@@ -28,8 +29,8 @@ class EmbedScoringStep(ScoringPagesStepBase):
         Получает эмбеддинг саммари исследования (query + direction) — если он уже
         сохранён в research_result_embed_summary, использует кэш. Для каждого чанка
         из research_result_bm25_chunks аналогично проверяет кэш в ChunkSummary.page_embed.
-        Вычисляет косинусное сходство, сохраняет embed_score и page_embed.
-        Топ-N чанков записывает в Research.research_result_embed_chunks.
+        Чанки без кэша эмбеддятся параллельно с конкурентностью ``model.model_n_async``;
+        шаг ждёт завершения всех запросов перед выходом.
         """
         research = self._research
 
@@ -71,7 +72,9 @@ class EmbedScoringStep(ScoringPagesStepBase):
         result = await self._session.execute(select(ChunkSummary).where(ChunkSummary.chunk_id.in_(chunk_ids)))
         chunks_by_id: dict[int, ChunkSummary] = {c.chunk_id: c for c in result.scalars().all()}
 
-        scored: list[tuple[int, str, int, float]] = []
+        cached: list[tuple[ChunkSummary, list[float]]] = []
+        pending: list[ChunkSummary] = []
+        pending_texts: list[str] = []
         for item in bm25_chunks:
             chunk_id: int = item["chunk_id"]
             chunk = chunks_by_id.get(chunk_id)
@@ -80,26 +83,40 @@ class EmbedScoringStep(ScoringPagesStepBase):
                 continue
 
             if chunk.page_embed:
-                embedding: list[float] = chunk.page_embed
                 logger.debug(f"{self._log_extra()} EmbedScoringStep: using cached embed for chunk_id={chunk_id}")
+                cached.append((chunk, chunk.page_embed))
             else:
-                try:
-                    embedding = await llm.embed(
-                        chunk.chunk_content,
-                        session=self._session,
-                        model_id=research.model_id_embed,
-                        research_id=research.research_id,
-                        step_type="embed_chunk",
-                    )
-                except Exception as exc:
-                    logger.error(f"{self._log_extra()} EmbedScoringStep: failed to embed chunk_id={chunk_id}: {exc}")
-                    continue
-                chunk.page_embed = embedding
+                pending.append(chunk)
+                pending_texts.append(chunk.chunk_content)
 
+        embeddings: list[list[float] | LLMGenerationError] = []
+        if pending_texts:
+            embeddings = await llm.embed_many(
+                texts=pending_texts,
+                model_id=research.model_id_embed,
+                research_id=research.research_id,
+                step_type="embed_chunk",
+            )
+
+        scored: list[tuple[int, str, int, float]] = []
+
+        for chunk, embedding in cached:
             score = round(max(0.0, min(1.0, _cosine_similarity(summary_embedding, embedding))), 3)
             chunk.embed_score = score
             scored.append((chunk.chunk_id, chunk.page_url, chunk.chunk_index, score))
-            logger.debug(f"{self._log_extra()} EmbedScoringStep: chunk_id={chunk_id} score={score:.3f}")
+            logger.debug(f"{self._log_extra()} EmbedScoringStep: chunk_id={chunk.chunk_id} score={score:.3f}")
+
+        for chunk, embedding in zip(pending, embeddings):
+            if isinstance(embedding, LLMGenerationError):
+                logger.error(
+                    f"{self._log_extra()} EmbedScoringStep: failed to embed chunk_id={chunk.chunk_id}: {embedding}"
+                )
+                continue
+            chunk.page_embed = embedding
+            score = round(max(0.0, min(1.0, _cosine_similarity(summary_embedding, embedding))), 3)
+            chunk.embed_score = score
+            scored.append((chunk.chunk_id, chunk.page_url, chunk.chunk_index, score))
+            logger.debug(f"{self._log_extra()} EmbedScoringStep: chunk_id={chunk.chunk_id} score={score:.3f}")
 
         await self._session.commit()
 

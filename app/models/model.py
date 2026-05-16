@@ -20,6 +20,7 @@ class Model(Base):
     model_base_url: Mapped[str] = mapped_column(Text, nullable=False)
     model_api_model: Mapped[str] = mapped_column(Text, nullable=False)
     model_max_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    model_n_async: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
 
     # META-параметры
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

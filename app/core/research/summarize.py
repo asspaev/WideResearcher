@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.crud.research import update_research_stage
 from app.models.chunk_summary import ChunkSummary
 from app.models.research import RESEARCH_STAGES
+from app.services.llm_client import LLMGenerationError
 
 from .base import ResearchStepBase
 
@@ -31,7 +32,9 @@ class SummarizeResearchStep(ResearchStepBase):
         """Генерирует bullet-summary для каждого чанка и сохраняет в ChunkSummary.page_summary.
 
         Для каждого выбранного чанка проверяет кэш page_summary в ChunkSummary.
-        Если summary ещё нет — запрашивает LLM (model_id_answer) и сохраняет результат.
+        Если summary ещё нет — параллельно запрашивает LLM (model_id_answer) с
+        конкурентностью ``model.model_n_async`` и ждёт завершения всех запросов
+        перед выходом из шага.
         """
         research = self._research
 
@@ -57,7 +60,8 @@ class SummarizeResearchStep(ResearchStepBase):
         result = await self._session.execute(select(ChunkSummary).where(ChunkSummary.chunk_id.in_(chunk_ids)))
         chunks_by_id: dict[int, ChunkSummary] = {c.chunk_id: c for c in result.scalars().all()}
 
-        done = 0
+        pending: list[ChunkSummary] = []
+        contexts: list[list[dict]] = []
         skipped = 0
         for item in chunks:
             chunk_id: int = item["chunk_id"]
@@ -94,23 +98,36 @@ class SummarizeResearchStep(ResearchStepBase):
                     ),
                 },
             ]
+            pending.append(chunk)
+            contexts.append(context)
 
-            try:
-                summary: str = await llm.generate(
-                    context=context,
-                    session=self._session,
-                    model_id=research.model_id_answer,
-                    research_id=research.research_id,
-                    step_type="summarize_bullet",
-                )
-                chunk.page_summary = summary
-                await self._session.commit()
-                done += 1
-                logger.debug(f"{self._log_extra()} SummarizeResearchStep: chunk_id={chunk_id} summarized")
-            except Exception as exc:
+        if not pending:
+            logger.info(
+                f"{self._log_extra()} SummarizeResearchStep: nothing to summarize "
+                f"(total={len(chunks)}, cached={skipped})"
+            )
+            return
+
+        results = await llm.generate_many(
+            contexts=contexts,
+            model_id=research.model_id_answer,
+            research_id=research.research_id,
+            step_type="summarize_bullet",
+        )
+
+        done = 0
+        for chunk, summary in zip(pending, results):
+            if isinstance(summary, LLMGenerationError):
                 logger.error(
-                    f"{self._log_extra()} SummarizeResearchStep: failed to summarize chunk_id={chunk_id}: {exc}"
+                    f"{self._log_extra()} SummarizeResearchStep: failed to summarize "
+                    f"chunk_id={chunk.chunk_id}: {summary}"
                 )
+                continue
+            chunk.page_summary = summary
+            done += 1
+            logger.debug(f"{self._log_extra()} SummarizeResearchStep: chunk_id={chunk.chunk_id} summarized")
+
+        await self._session.commit()
         logger.info(
             f"{self._log_extra()} SummarizeResearchStep: done "
             f"(total={len(chunks)}, summarized={done}, cached={skipped})"

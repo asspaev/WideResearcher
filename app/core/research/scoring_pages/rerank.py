@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.crud.research import update_research_rerank_chunks, update_research_stage
 from app.models.chunk_summary import ChunkSummary
 from app.models.research import RESEARCH_STAGES
+from app.services.llm_client import LLMGenerationError
 
 from .base import ScoringPagesStepBase
 
@@ -21,7 +22,9 @@ class RerankScoringStep(ScoringPagesStepBase):
 
         Для каждого чанка из research_result_embed_chunks проверяет кэш rerank_score
         в ChunkSummary. Если скора нет — просит reranker-модель оценить релевантность
-        чанка к саммари исследования. Топ-N чанков записывает в Research.research_result_rerank_chunks.
+        чанка к саммари исследования. Запросы выполняются параллельно с
+        конкурентностью ``model.model_n_async``; шаг ждёт завершения всех запросов
+        перед выходом. Топ-N чанков записывает в Research.research_result_rerank_chunks.
         """
         research = self._research
 
@@ -47,6 +50,9 @@ class RerankScoringStep(ScoringPagesStepBase):
         chunks_by_id: dict[int, ChunkSummary] = {c.chunk_id: c for c in result.scalars().all()}
 
         scored: list[tuple[int, str, int, float]] = []
+        pending: list[ChunkSummary] = []
+        pending_contexts: list[list[dict]] = []
+
         for item in embed_chunks:
             chunk_id: int = item["chunk_id"]
             chunk = chunks_by_id.get(chunk_id)
@@ -76,22 +82,29 @@ class RerankScoringStep(ScoringPagesStepBase):
                     "content": (f"Research query: {summary_text}\n\nText chunk:\n{chunk.chunk_content}"),
                 },
             ]
-            try:
-                rerank_result: _RerankScore = await llm.generate_structured(
-                    context=context,
-                    output_type=_RerankScore,
-                    session=self._session,
-                    model_id=research.model_id_reranker,
-                    research_id=research.research_id,
-                    step_type="rerank_chunk",
-                )
+            pending.append(chunk)
+            pending_contexts.append(context)
+
+        if pending_contexts:
+            rerank_results = await llm.generate_structured_many(
+                contexts=pending_contexts,
+                output_type=_RerankScore,
+                model_id=research.model_id_reranker,
+                research_id=research.research_id,
+                step_type="rerank_chunk",
+            )
+
+            for chunk, rerank_result in zip(pending, rerank_results):
+                if isinstance(rerank_result, LLMGenerationError):
+                    logger.error(
+                        f"{self._log_extra()} RerankScoringStep: failed to score chunk_id={chunk.chunk_id}: "
+                        f"{rerank_result}"
+                    )
+                    continue
                 score = round(max(0.0, min(1.0, float(rerank_result.score))), 3)
                 chunk.rerank_score = score
                 scored.append((chunk.chunk_id, chunk.page_url, chunk.chunk_index, score))
-                logger.debug(f"{self._log_extra()} RerankScoringStep: chunk_id={chunk_id} score={score:.3f}")
-            except Exception as exc:
-                logger.error(f"{self._log_extra()} RerankScoringStep: failed to score chunk_id={chunk_id}: {exc}")
-                continue
+                logger.debug(f"{self._log_extra()} RerankScoringStep: chunk_id={chunk.chunk_id} score={score:.3f}")
 
         await self._session.commit()
 

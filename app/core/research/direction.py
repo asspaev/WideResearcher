@@ -9,7 +9,7 @@ from app.crud.research import (
     update_research_stage,
 )
 from app.models.research import RESEARCH_STAGES, Research
-from app.services.llm_client import LLMClient
+from app.services.llm_client import LLMClient, LLMGenerationError
 from app.services.prompts import (
     build_direction_continuation_messages,
     build_direction_messages,
@@ -58,46 +58,60 @@ class DirectionResearchStep(ResearchStepBase):
     async def _summarize_parent_segments(self, llm: LLMClient, parent_research) -> str:
         """Суммаризирует сегменты предыдущего исследования в bullet-points.
 
+        Все запросы выполняются параллельно с конкурентностью ``model.model_n_async``.
+        Шаг ждёт завершения всех суммаризаций до того, как вернуть результат.
+
         Args:
             llm: Клиент LLM для генерации суммаризаций.
             parent_research: ORM-объект родительского исследования.
 
         Returns:
             Строка с объединёнными bullet-point суммари всех сегментов.
+
+        Raises:
+            DirectionStepError: Если подряд (по исходному порядку сегментов) пришло
+                5 и более ошибок — это означает, что модель/API недоступны.
         """
         segments = (parent_research.research_body_finish or {}).get("segments", [])
         if not segments:
             return ""
 
         query: str = parent_research.research_name
-        bullet_summaries: list[str] = []
-        consecutive_errors = 0
 
+        formatted_segments: list[str] = []
         for segment in segments:
             formatted = _format_segment_for_prompt(segment)
-            if not formatted:
-                continue
+            if formatted:
+                formatted_segments.append(formatted)
 
-            messages = build_segment_summarize_messages(segment_text=formatted, query=query)
-            try:
-                summary = await llm.generate(
-                    messages,
-                    session=self._session,
-                    model_id=self._research.model_id_direction,
-                    research_id=self._research.research_id,
-                    step_type="direction_prev_summarize",
-                )
-                if summary and summary.strip():
-                    bullet_summaries.append(summary.strip())
-                consecutive_errors = 0
-            except Exception as exc:
+        if not formatted_segments:
+            return ""
+
+        contexts = [build_segment_summarize_messages(segment_text=text, query=query) for text in formatted_segments]
+        results = await llm.generate_many(
+            contexts=contexts,
+            model_id=self._research.model_id_direction,
+            research_id=self._research.research_id,
+            step_type="direction_prev_summarize",
+        )
+
+        bullet_summaries: list[str] = []
+        consecutive_errors = 0
+        last_error: LLMGenerationError | None = None
+        for summary in results:
+            if isinstance(summary, LLMGenerationError):
                 consecutive_errors += 1
+                last_error = summary
                 logger.warning(
                     f"{self._log_extra()} DirectionResearchStep: failed to summarize segment "
-                    f"({consecutive_errors}/5): {exc}"
+                    f"({consecutive_errors}/5): {summary}"
                 )
                 if consecutive_errors >= 5:
-                    raise DirectionStepError("Too many consecutive segment summarization failures") from exc
+                    raise DirectionStepError("Too many consecutive segment summarization failures") from last_error
+                continue
+            consecutive_errors = 0
+            if summary and summary.strip():
+                bullet_summaries.append(summary.strip())
 
         return "\n\n".join(bullet_summaries)
 
