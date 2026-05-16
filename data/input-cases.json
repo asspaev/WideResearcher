@@ -1,0 +1,165 @@
+{
+  "version": "1.0",
+  "total_cases": 100,
+  "schema": {
+    "id": "Уникальный ID вида XXX-NN (3-буквенный код категории + порядковый номер)",
+    "category_code": "3-буквенный код категории",
+    "category": "Название категории",
+    "prompt": "Текст запроса для глубокого исследования",
+    "freshness": "low | mid | high — зависимость от свежести источников"
+  },
+  "freshness_levels": {
+    "low": "стабильное знание; источники могут быть старыми",
+    "mid": "есть актуальные обновления, но база стабильна",
+    "high": "нужны свежие источники (новости, статистика, недавние работы)"
+  },
+  "categories": [
+    {"code": "BIO", "name": "Биология и экология", "topic": "виды, экосистемы, климат, генетика"},
+    {"code": "PHY", "name": "Физика и космос", "topic": "фундаментальная физика, астрономия, миссии"},
+    {"code": "CHM", "name": "Химия и материалы", "topic": "органика, новые материалы, нанотех"},
+    {"code": "ERT", "name": "Науки о Земле", "topic": "геология, океанология, метеорология"},
+    {"code": "AIM", "name": "AI / ML", "topic": "модели, обучение, исследовательские статьи"},
+    {"code": "SWE", "name": "Software Engineering", "topic": "языки, архитектура, фреймворки"},
+    {"code": "SEC", "name": "Кибербезопасность", "topic": "уязвимости, инциденты, защита"},
+    {"code": "HWR", "name": "Hardware и инфраструктура", "topic": "чипы, дата-центры, сетевое оборудование"},
+    {"code": "MED", "name": "Клиническая медицина", "topic": "заболевания, диагностика, протоколы"},
+    {"code": "PHA", "name": "Фармакология", "topic": "препараты, испытания, побочные эффекты"},
+    {"code": "PSY", "name": "Психология и нейронауки", "topic": "когнитивистика, ментальное здоровье"},
+    {"code": "HIS", "name": "История", "topic": "события, периоды, личности"},
+    {"code": "LIN", "name": "Лингвистика и литература", "topic": "языки, литературоведение"},
+    {"code": "PHI", "name": "Философия и этика", "topic": "школы мысли, современные дебаты"},
+    {"code": "LAW", "name": "Право и политология", "topic": "законодательство, политические системы"},
+    {"code": "ECO", "name": "Экономика и рынки", "topic": "макро, рынки, финансы"},
+    {"code": "BIZ", "name": "Бизнес и менеджмент", "topic": "стратегии, отрасли, операционка"},
+    {"code": "CRY", "name": "Криптовалюты и блокчейн", "topic": "протоколы, рынок, регулирование"},
+    {"code": "ART", "name": "Искусство и кино", "topic": "направления, индустрия, кейсы"},
+    {"code": "SPT", "name": "Спорт", "topic": "соревнования, статистика, аналитика"}
+  ],
+  "cases": [
+    {"id": "BIO-01", "category_code": "BIO", "category": "Биология и экология", "prompt": "Эпигенетическое наследование стресса у млекопитающих: обзор доказательств и механизмов", "freshness": "mid"},
+    {"id": "BIO-02", "category_code": "BIO", "category": "Биология и экология", "prompt": "Влияние микропластика на морскую пищевую цепь — современные данные 2024–2025", "freshness": "high"},
+    {"id": "BIO-03", "category_code": "BIO", "category": "Биология и экология", "prompt": "Применения CRISPR-Cas13 в терапии генетических заболеваний и текущие ограничения", "freshness": "high"},
+    {"id": "BIO-04", "category_code": "BIO", "category": "Биология и экология", "prompt": "Грибные сети (микориза) и коммуникация растений: что подтверждено научно, что спорно", "freshness": "mid"},
+    {"id": "BIO-05", "category_code": "BIO", "category": "Биология и экология", "prompt": "Биоразнообразие тропических лесов Амазонии: ключевые виды и динамика", "freshness": "low"},
+
+    {"id": "PHY-01", "category_code": "PHY", "category": "Физика и космос", "prompt": "Hubble tension: почему разные методы дают разные значения постоянной Хаббла", "freshness": "mid"},
+    {"id": "PHY-02", "category_code": "PHY", "category": "Физика и космос", "prompt": "Аномалия g−2 мюона — состояние теоретического объяснения и эксперимента на 2025", "freshness": "high"},
+    {"id": "PHY-03", "category_code": "PHY", "category": "Физика и космос", "prompt": "Миссия JUICE к спутникам Юпитера: научные цели и текущий статус", "freshness": "high"},
+    {"id": "PHY-04", "category_code": "PHY", "category": "Физика и космос", "prompt": "Тёмная материя: основные гипотезы и текущие эксперименты по прямому детектированию", "freshness": "mid"},
+    {"id": "PHY-05", "category_code": "PHY", "category": "Физика и космос", "prompt": "Основы квантовой запутанности и эксперименты, подтвердившие нелокальность", "freshness": "low"},
+
+    {"id": "CHM-01", "category_code": "CHM", "category": "Химия и материалы", "prompt": "Перовскитные солнечные элементы: причины деградации и пути её решения", "freshness": "mid"},
+    {"id": "CHM-02", "category_code": "CHM", "category": "Химия и материалы", "prompt": "MOF (metal-organic frameworks) для улавливания CO₂ — состояние коммерциализации", "freshness": "high"},
+    {"id": "CHM-03", "category_code": "CHM", "category": "Химия и материалы", "prompt": "Литий-серные аккумуляторы: технологические барьеры на пути в индустрию", "freshness": "mid"},
+    {"id": "CHM-04", "category_code": "CHM", "category": "Химия и материалы", "prompt": "Зелёный аммиак: методы синтеза и сравнительная экономика", "freshness": "high"},
+    {"id": "CHM-05", "category_code": "CHM", "category": "Химия и материалы", "prompt": "Углеродные нанотрубки в электронике: почему промышленное внедрение задерживается", "freshness": "low"},
+
+    {"id": "ERT-01", "category_code": "ERT", "category": "Науки о Земле", "prompt": "Атлантическая меридиональная циркуляция (AMOC): риски замедления и научный консенсус", "freshness": "high"},
+    {"id": "ERT-02", "category_code": "ERT", "category": "Науки о Земле", "prompt": "Современные методы прогнозирования землетрясений — что работает и что нет", "freshness": "mid"},
+    {"id": "ERT-03", "category_code": "ERT", "category": "Науки о Земле", "prompt": "Таяние арктической вечной мерзлоты и выбросы метана: данные последних лет", "freshness": "high"},
+    {"id": "ERT-04", "category_code": "ERT", "category": "Науки о Земле", "prompt": "Засухи в Средиземноморье: климатологические тренды и атрибуция к антропогенному воздействию", "freshness": "mid"},
+    {"id": "ERT-05", "category_code": "ERT", "category": "Науки о Земле", "prompt": "Основы тектоники плит и доказательства движения континентов", "freshness": "low"},
+
+    {"id": "AIM-01", "category_code": "AIM", "category": "AI / ML", "prompt": "Mixture-of-Experts архитектуры: преимущества и ограничения по сравнению с dense", "freshness": "mid"},
+    {"id": "AIM-02", "category_code": "AIM", "category": "AI / ML", "prompt": "Test-time compute scaling (OpenAI o-series, DeepSeek R1): что известно об архитектуре", "freshness": "high"},
+    {"id": "AIM-03", "category_code": "AIM", "category": "AI / ML", "prompt": "RLHF vs DPO vs RLAIF: практические различия и сравнительные результаты", "freshness": "mid"},
+    {"id": "AIM-04", "category_code": "AIM", "category": "AI / ML", "prompt": "Долговременная память LLM-агентов: современные подходы (RAG, episodic memory)", "freshness": "high"},
+    {"id": "AIM-05", "category_code": "AIM", "category": "AI / ML", "prompt": "Трансформер: оригинальная архитектура и ключевые исторические улучшения", "freshness": "low"},
+
+    {"id": "SWE-01", "category_code": "SWE", "category": "Software Engineering", "prompt": "Rust vs Go для высоконагруженных бэкендов: реальные кейсы миграции", "freshness": "mid"},
+    {"id": "SWE-02", "category_code": "SWE", "category": "Software Engineering", "prompt": "Microservices vs monolith vs modular monolith: современные рекомендации", "freshness": "mid"},
+    {"id": "SWE-03", "category_code": "SWE", "category": "Software Engineering", "prompt": "WebAssembly за пределами браузера: production-применения на 2025", "freshness": "high"},
+    {"id": "SWE-04", "category_code": "SWE", "category": "Software Engineering", "prompt": "Event sourcing: практические сложности внедрения и крупные кейсы", "freshness": "low"},
+    {"id": "SWE-05", "category_code": "SWE", "category": "Software Engineering", "prompt": "Async Python (FastAPI, asyncio): типичные узкие места и решения", "freshness": "mid"},
+
+    {"id": "SEC-01", "category_code": "SEC", "category": "Кибербезопасность", "prompt": "Post-quantum cryptography: стандарты NIST 2024 и сроки внедрения в индустрии", "freshness": "high"},
+    {"id": "SEC-02", "category_code": "SEC", "category": "Кибербезопасность", "prompt": "Атаки на supply chain в open-source: крупные инциденты и стратегии защиты", "freshness": "high"},
+    {"id": "SEC-03", "category_code": "SEC", "category": "Кибербезопасность", "prompt": "Zero-trust архитектура: реальные результаты внедрения в крупных компаниях", "freshness": "mid"},
+    {"id": "SEC-04", "category_code": "SEC", "category": "Кибербезопасность", "prompt": "AI в фишинговых атаках: текущие техники и средства противодействия", "freshness": "high"},
+    {"id": "SEC-05", "category_code": "SEC", "category": "Кибербезопасность", "prompt": "Классические уязвимости класса buffer overflow: механика и защитные техники", "freshness": "low"},
+
+    {"id": "HWR-01", "category_code": "HWR", "category": "Hardware и инфраструктура", "prompt": "Архитектура NVIDIA Blackwell: ключевые отличия от Hopper", "freshness": "high"},
+    {"id": "HWR-02", "category_code": "HWR", "category": "Hardware и инфраструктура", "prompt": "Жидкостное охлаждение в дата-центрах: экономика и индустриальные тренды", "freshness": "mid"},
+    {"id": "HWR-03", "category_code": "HWR", "category": "Hardware и инфраструктура", "prompt": "ARM в серверах (Graviton, Ampere): производительность и стоимость владения", "freshness": "mid"},
+    {"id": "HWR-04", "category_code": "HWR", "category": "Hardware и инфраструктура", "prompt": "TPU vs GPU для LLM-инференса: где какой выгоднее", "freshness": "high"},
+    {"id": "HWR-05", "category_code": "HWR", "category": "Hardware и инфраструктура", "prompt": "Основы памяти DDR и эволюция от DDR3 до DDR5", "freshness": "low"},
+
+    {"id": "MED-01", "category_code": "MED", "category": "Клиническая медицина", "prompt": "Препараты GLP-1 (Ozempic, Wegovy): долгосрочные эффекты помимо снижения веса", "freshness": "high"},
+    {"id": "MED-02", "category_code": "MED", "category": "Клиническая медицина", "prompt": "Современные протоколы лечения болезни Альцгеймера и эффективность новых препаратов", "freshness": "high"},
+    {"id": "MED-03", "category_code": "MED", "category": "Клиническая медицина", "prompt": "Иммунотерапия рака: статистика выживаемости по типам опухолей", "freshness": "mid"},
+    {"id": "MED-04", "category_code": "MED", "category": "Клиническая медицина", "prompt": "Постковидный синдром (long COVID): современное понимание механизмов", "freshness": "mid"},
+    {"id": "MED-05", "category_code": "MED", "category": "Клиническая медицина", "prompt": "ЭКМО: показания, противопоказания, эффективность в клинической практике", "freshness": "low"},
+
+    {"id": "PHA-01", "category_code": "PHA", "category": "Фармакология", "prompt": "Психоделики в психотерапии (псилоцибин, MDMA): клинические испытания фазы 3", "freshness": "high"},
+    {"id": "PHA-02", "category_code": "PHA", "category": "Фармакология", "prompt": "Антибиотикорезистентность: глобальная статистика и новые антибиотики", "freshness": "high"},
+    {"id": "PHA-03", "category_code": "PHA", "category": "Фармакология", "prompt": "Биосимиляры: рынок и эффективность по сравнению с оригинальными биопрепаратами", "freshness": "mid"},
+    {"id": "PHA-04", "category_code": "PHA", "category": "Фармакология", "prompt": "mRNA-вакцины за пределами COVID: клинические испытания против онкологии", "freshness": "high"},
+    {"id": "PHA-05", "category_code": "PHA", "category": "Фармакология", "prompt": "Препараты, потенциально замедляющие старение (рапамицин, метформин, sirtuin-активаторы)", "freshness": "mid"},
+
+    {"id": "PSY-01", "category_code": "PSY", "category": "Психология и нейронауки", "prompt": "Связь кишечной микробиоты и психического здоровья: доказательная база", "freshness": "mid"},
+    {"id": "PSY-02", "category_code": "PSY", "category": "Психология и нейронауки", "prompt": "Глимфатическая система мозга: современные открытия и их клиническая значимость", "freshness": "high"},
+    {"id": "PSY-03", "category_code": "PSY", "category": "Психология и нейронауки", "prompt": "Поляризация в социальных сетях: психологические механизмы и эмпирические исследования", "freshness": "high"},
+    {"id": "PSY-04", "category_code": "PSY", "category": "Психология и нейронауки", "prompt": "Прокрастинация: нейробиологические основы и научно подтверждённые методы борьбы", "freshness": "mid"},
+    {"id": "PSY-05", "category_code": "PSY", "category": "Психология и нейронауки", "prompt": "Основные когнитивные искажения и их экспериментальные доказательства", "freshness": "low"},
+
+    {"id": "HIS-01", "category_code": "HIS", "category": "История", "prompt": "Падение Византийской империи: современные историографические подходы", "freshness": "low"},
+    {"id": "HIS-02", "category_code": "HIS", "category": "История", "prompt": "Реформация в Европе и её экономические последствия", "freshness": "low"},
+    {"id": "HIS-03", "category_code": "HIS", "category": "История", "prompt": "Деколонизация Африки: этапы и долгосрочные политические последствия", "freshness": "mid"},
+    {"id": "HIS-04", "category_code": "HIS", "category": "История", "prompt": "Холодная война в Латинской Америке: операции и роль внешних держав", "freshness": "mid"},
+    {"id": "HIS-05", "category_code": "HIS", "category": "История", "prompt": "История эпидемий и их влияние на демографию Европы", "freshness": "low"},
+
+    {"id": "LIN-01", "category_code": "LIN", "category": "Лингвистика и литература", "prompt": "Гипотеза Сепира — Уорфа: современная научная позиция и эмпирические работы", "freshness": "mid"},
+    {"id": "LIN-02", "category_code": "LIN", "category": "Лингвистика и литература", "prompt": "Языки коренных народов Сибири: угроза исчезновения и попытки сохранения", "freshness": "mid"},
+    {"id": "LIN-03", "category_code": "LIN", "category": "Лингвистика и литература", "prompt": "Влияние LLM на лингвистические исследования: состояние и дебаты", "freshness": "high"},
+    {"id": "LIN-04", "category_code": "LIN", "category": "Лингвистика и литература", "prompt": "Творчество Франца Кафки: современная литературная критика", "freshness": "low"},
+    {"id": "LIN-05", "category_code": "LIN", "category": "Лингвистика и литература", "prompt": "Происхождение индоевропейских языков: археогенетические и лингвистические данные", "freshness": "mid"},
+
+    {"id": "PHI-01", "category_code": "PHI", "category": "Философия и этика", "prompt": "Этика ИИ: основные подходы (deontology, utilitarianism, virtue ethics) применительно к LLM", "freshness": "high"},
+    {"id": "PHI-02", "category_code": "PHI", "category": "Философия и этика", "prompt": "Проблема свободы воли в свете современной нейронауки", "freshness": "mid"},
+    {"id": "PHI-03", "category_code": "PHI", "category": "Философия и этика", "prompt": "Трансгуманизм: философские основания и основная критика", "freshness": "mid"},
+    {"id": "PHI-04", "category_code": "PHI", "category": "Философия и этика", "prompt": "Этика клинических испытаний в развивающихся странах", "freshness": "mid"},
+    {"id": "PHI-05", "category_code": "PHI", "category": "Философия и этика", "prompt": "Основные идеи экзистенциализма и их применимость в современной психотерапии", "freshness": "low"},
+
+    {"id": "LAW-01", "category_code": "LAW", "category": "Право и политология", "prompt": "AI Act ЕС: ключевые требования, классификация рисков, санкции", "freshness": "high"},
+    {"id": "LAW-02", "category_code": "LAW", "category": "Право и политология", "prompt": "Регулирование криптовалют: США vs ЕС vs Великобритания", "freshness": "high"},
+    {"id": "LAW-03", "category_code": "LAW", "category": "Право и политология", "prompt": "Право на забвение в интернете: судебная практика ЕСПЧ и национальных судов", "freshness": "mid"},
+    {"id": "LAW-04", "category_code": "LAW", "category": "Право и политология", "prompt": "Антимонопольные иски против Big Tech: статус ключевых дел", "freshness": "high"},
+    {"id": "LAW-05", "category_code": "LAW", "category": "Право и политология", "prompt": "Основы международного гуманитарного права (Женевские конвенции)", "freshness": "low"},
+
+    {"id": "ECO-01", "category_code": "ECO", "category": "Экономика и рынки", "prompt": "Инфляция в зоне евро: драйверы 2024–2025 и прогнозы ЕЦБ", "freshness": "high"},
+    {"id": "ECO-02", "category_code": "ECO", "category": "Экономика и рынки", "prompt": "Долговая позиция США: риски и сценарии обслуживания", "freshness": "high"},
+    {"id": "ECO-03", "category_code": "ECO", "category": "Экономика и рынки", "prompt": "BRICS+ и дедолларизация: реальные данные о доле доллара в расчётах", "freshness": "mid"},
+    {"id": "ECO-04", "category_code": "ECO", "category": "Экономика и рынки", "prompt": "Японская «потерянная декада»: современная экономическая оценка причин и уроков", "freshness": "low"},
+    {"id": "ECO-05", "category_code": "ECO", "category": "Экономика и рынки", "prompt": "Влияние ИИ на рынок труда: эмпирические данные за 2024–2025", "freshness": "high"},
+
+    {"id": "BIZ-01", "category_code": "BIZ", "category": "Бизнес и менеджмент", "prompt": "OKR vs KPI: практика внедрения в продуктовых компаниях", "freshness": "mid"},
+    {"id": "BIZ-02", "category_code": "BIZ", "category": "Бизнес и менеджмент", "prompt": "Удалённая работа после пандемии: статистика и индустриальные тренды", "freshness": "high"},
+    {"id": "BIZ-03", "category_code": "BIZ", "category": "Бизнес и менеджмент", "prompt": "Состояние венчурного рынка 2025: финансирование, выходы, оценки", "freshness": "high"},
+    {"id": "BIZ-04", "category_code": "BIZ", "category": "Бизнес и менеджмент", "prompt": "Управление техническим долгом в крупных продуктовых командах", "freshness": "low"},
+    {"id": "BIZ-05", "category_code": "BIZ", "category": "Бизнес и менеджмент", "prompt": "Применение ИИ-агентов в бизнес-процессах: реальные кейсы и метрики", "freshness": "high"},
+
+    {"id": "CRY-01", "category_code": "CRY", "category": "Криптовалюты и блокчейн", "prompt": "Bitcoin ETF: влияние на рынок после одобрения SEC", "freshness": "high"},
+    {"id": "CRY-02", "category_code": "CRY", "category": "Криптовалюты и блокчейн", "prompt": "Layer 2 решения Ethereum: сравнение, TVL, модели безопасности", "freshness": "high"},
+    {"id": "CRY-03", "category_code": "CRY", "category": "Криптовалюты и блокчейн", "prompt": "DeFi-протоколы: крупные эксплойты и извлечённые уроки", "freshness": "mid"},
+    {"id": "CRY-04", "category_code": "CRY", "category": "Криптовалюты и блокчейн", "prompt": "Действия SEC против криптобирж: ключевые иски и решения", "freshness": "high"},
+    {"id": "CRY-05", "category_code": "CRY", "category": "Криптовалюты и блокчейн", "prompt": "CBDC: статус внедрения в ведущих экономиках", "freshness": "mid"},
+
+    {"id": "ART-01", "category_code": "ART", "category": "Искусство и кино", "prompt": "Влияние генеративного ИИ на индустрию иллюстрации и стоковую фотографию", "freshness": "high"},
+    {"id": "ART-02", "category_code": "ART", "category": "Искусство и кино", "prompt": "Современное российское авторское кино: ключевые фигуры и тренды", "freshness": "mid"},
+    {"id": "ART-03", "category_code": "ART", "category": "Искусство и кино", "prompt": "Реставрация культурных объектов после военных конфликтов", "freshness": "mid"},
+    {"id": "ART-04", "category_code": "ART", "category": "Искусство и кино", "prompt": "Стриминговые войны: стратегии Netflix, Apple TV+, Disney+", "freshness": "high"},
+    {"id": "ART-05", "category_code": "ART", "category": "Искусство и кино", "prompt": "Импрессионизм: ключевые художники, эстетика, рецепция", "freshness": "low"},
+
+    {"id": "SPT-01", "category_code": "SPT", "category": "Спорт", "prompt": "Применение спортивной аналитики и AI в футболе высшего уровня", "freshness": "mid"},
+    {"id": "SPT-02", "category_code": "SPT", "category": "Спорт", "prompt": "ВАДА и допинговые скандалы: ключевые кейсы последних лет", "freshness": "high"},
+    {"id": "SPT-03", "category_code": "SPT", "category": "Спорт", "prompt": "Бизнес-модель UFC: экономика организации и игроков", "freshness": "mid"},
+    {"id": "SPT-04", "category_code": "SPT", "category": "Спорт", "prompt": "Современные методы восстановления после травм у профессиональных спортсменов", "freshness": "mid"},
+    {"id": "SPT-05", "category_code": "SPT", "category": "Спорт", "prompt": "История и эволюция тактических схем в футболе", "freshness": "low"}
+  ],
+  "freshness_summary": {
+    "low": 20,
+    "mid": 40,
+    "high": 40,
+    "total": 100
+  }
+}
