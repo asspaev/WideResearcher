@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Any, Awaitable, Callable, Coroutine, TypeVar
 
 from loguru import logger
@@ -15,6 +16,9 @@ from app.crud.model_output import create_model_output, update_model_output
 from app.models.model_output import ModelResponseStatus
 
 T = TypeVar("T", bound=BaseModel)
+
+LLM_JSON_RETRIES = 3
+LLM_JSON_RETRY_BACKOFF = 1.0
 
 
 class LLMGenerationError(Exception):
@@ -157,10 +161,43 @@ class LLMClient:
                 step_type=step_type,
             )
 
+    async def _call_with_json_retry(self, coro_factory: Callable[[], Awaitable[Any]]) -> Any:
+        """Запускает корутину с ретраями на json.JSONDecodeError.
+
+        Некоторые провайдеры (например, OpenRouter) изредка возвращают 200 OK
+        с невалидным телом (HTML/пробелы) — OpenAI SDK сам такие случаи не
+        ретраит, и единичный плохой ответ роняет весь шаг исследования.
+
+        Args:
+            coro_factory: Фабрика, которая на каждый вызов создаёт новую корутину
+                с HTTP-запросом (нельзя re-await один и тот же объект).
+
+        Returns:
+            Результат успешной попытки.
+
+        Raises:
+            json.JSONDecodeError: Если все LLM_JSON_RETRIES попытки вернули битый JSON.
+        """
+        last_exc: json.JSONDecodeError | None = None
+        for attempt in range(1, LLM_JSON_RETRIES + 1):
+            try:
+                return await coro_factory()
+            except json.JSONDecodeError as e:
+                last_exc = e
+                logger.warning(
+                    f"LLMClient: malformed JSON from {self.model_name} " f"(attempt {attempt}/{LLM_JSON_RETRIES}): {e}"
+                )
+                if attempt < LLM_JSON_RETRIES:
+                    await asyncio.sleep(LLM_JSON_RETRY_BACKOFF * attempt)
+        assert last_exc is not None
+        raise last_exc
+
     async def _do_embed(self, text: str) -> list[float]:
-        response = await self._client.embeddings.create(
-            model=self.model_name,
-            input=text,
+        response = await self._call_with_json_retry(
+            lambda: self._client.embeddings.create(
+                model=self.model_name,
+                input=text,
+            )
         )
         return response.data[0].embedding
 
@@ -198,9 +235,11 @@ class LLMClient:
 
     async def _do_generate(self, context: list[dict]) -> str:
         logger.debug(f"LLMClient: generate model={self.model_name} base_url={self._base_url} messages={len(context)}")
-        response = await self._client.chat.completions.create(
-            model=self.model_name,
-            messages=context,
+        response = await self._call_with_json_retry(
+            lambda: self._client.chat.completions.create(
+                model=self.model_name,
+                messages=context,
+            )
         )
         return response.choices[0].message.content
 
