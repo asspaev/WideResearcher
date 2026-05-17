@@ -522,7 +522,11 @@ async def run_one_case(case: dict[str, Any], runner: SystemRunner, judge: Judge)
     }
 
 
-def load_completed_case_ids(output_path: Path) -> set[str]:
+def load_completed_case_ids(output_path: Path, system_name: str) -> set[str]:
+    """Возвращает case_id, для которых в output уже есть УСПЕШНЫЙ запуск выбранной системы.
+
+    Кейсы с `status == "error"` намеренно не скипаются — их нужно перепрогнать.
+    """
     if not output_path.exists():
         return set()
     done: set[str] = set()
@@ -532,10 +536,49 @@ def load_completed_case_ids(output_path: Path) -> set[str]:
             if not line:
                 continue
             try:
-                done.add(json.loads(line)["case_id"])
+                record = json.loads(line)
+                system_result = record.get("systems", {}).get(system_name)
+                if system_result and system_result.get("status") == "ok":
+                    done.add(record["case_id"])
             except (json.JSONDecodeError, KeyError):
                 continue
     return done
+
+
+def purge_error_records(output_path: Path, system_name: str) -> int:
+    """Удаляет из output JSONL записи, в которых выбранная система имеет `status == "error"`.
+
+    Перезаписывает файл атомарно (через temp + rename). Если файла нет — возвращает 0.
+    Возвращает количество удалённых записей.
+    """
+    if not output_path.exists():
+        return 0
+    kept: list[str] = []
+    removed = 0
+    with output_path.open(encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                record = json.loads(stripped)
+            except json.JSONDecodeError:
+                kept.append(stripped)
+                continue
+            system_result = record.get("systems", {}).get(system_name)
+            if system_result and system_result.get("status") == "error":
+                removed += 1
+                continue
+            kept.append(json.dumps(record, ensure_ascii=False))
+    if removed:
+        tmp_path = output_path.with_suffix(output_path.suffix + ".tmp")
+        with tmp_path.open("w", encoding="utf-8") as f:
+            for entry in kept:
+                f.write(entry + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        tmp_path.replace(output_path)
+    return removed
 
 
 def parse_slice(s: str) -> slice:
@@ -600,23 +643,24 @@ async def main() -> None:
         action="store_true",
         help="Process all cases in slice, even if already present in output.",
     )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="How many cases to run through the runner in parallel (default: 1, sequential).",
+    )
     args = parser.parse_args()
+
+    if args.concurrency < 1:
+        parser.error("--concurrency must be >= 1")
 
     if args.output is None:
         args.output = default_output_for(args.system)
 
     data = json.loads(args.input.read_text(encoding="utf-8"))
     all_cases = data["cases"]
-    cases = all_cases[parse_slice(args.slice)]
-    print(f"Loaded {len(cases)}/{len(all_cases)} cases from {args.input} (slice={args.slice})")
-
-    done = set() if args.no_resume else load_completed_case_ids(args.output)
-    if done:
-        print(f"Resuming: skipping {len(done)} cases already in {args.output}")
-    cases = [c for c in cases if c["id"] not in done]
-    if not cases:
-        print("Nothing to do.")
-        return
+    sliced_cases = all_cases[parse_slice(args.slice)]
+    print(f"Loaded {len(sliced_cases)}/{len(all_cases)} cases from {args.input} (slice={args.slice})")
 
     try:
         runner = build_runner(args.system, args.mock)
@@ -624,30 +668,95 @@ async def main() -> None:
         print(f"Failed to init runner '{args.system}': {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(1)
     judge = build_judge(args.mock)
-    print(f"System: {runner.name} ({type(runner).__name__}) | " f"judge: {type(judge).__name__} | mock={args.mock}")
+    print(
+        f"System: {runner.name} ({type(runner).__name__}) | "
+        f"judge: {type(judge).__name__} | mock={args.mock} | concurrency={args.concurrency}"
+    )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("a", encoding="utf-8") as f:
-        for i, case in enumerate(cases, 1):
-            t0 = time.perf_counter()
-            print(f"[{i}/{len(cases)}] {case['id']} ...", end=" ", flush=True)
-            try:
-                rec = await run_one_case(case, runner, judge)
-            except Exception as e:
-                print(f"FAILED: {type(e).__name__}: {e}", file=sys.stderr)
-                continue
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-            f.flush()
-            os.fsync(f.fileno())
-            metrics = rec["systems"][runner.name].get("metrics", {})
+
+    iteration = 0
+    while True:
+        iteration += 1
+        print(f"\n=== Iteration {iteration} ===")
+
+        if not args.no_resume:
+            removed = purge_error_records(args.output, args.system)
+            if removed:
+                print(f"Purged {removed} error records from {args.output} — they will be retried.")
+
+        done = set() if args.no_resume else load_completed_case_ids(args.output, args.system)
+        if done:
+            print(f"Skipping {len(done)} successful cases already in {args.output}")
+        cases = [c for c in sliced_cases if c["id"] not in done]
+        if not cases:
+            print("Nothing to do — all cases completed successfully.")
+            break
+
+        successful = await _run_cases(args, cases, runner, judge)
+        print(f"Iteration {iteration}: {successful}/{len(cases)} succeeded.")
+
+        if args.no_resume:
+            # --no-resume отключает skipping, иначе следующая итерация снова прогонит всё.
+            break
+        if successful == 0:
             print(
-                f"done in {time.perf_counter() - t0:.1f}s | "
-                f"n_valid={metrics.get('n_valid', 'ERR')} / "
-                f"n_sources={metrics.get('n_sources', 'ERR')} "
-                f"(unreachable={metrics.get('n_unreachable', 'ERR')})"
+                f"Iteration {iteration} produced 0 successful runs out of {len(cases)}. "
+                "Stopping to avoid an infinite retry loop."
             )
+            break
 
     print(f"\nFinished. Output: {args.output}")
+
+
+async def _run_cases(
+    args: argparse.Namespace,
+    cases: list[dict[str, Any]],
+    runner: SystemRunner,
+    judge: Judge,
+) -> int:
+    """Прогоняет cases через runner+judge, дописывая результат в args.output.
+
+    Возвращает количество кейсов, завершившихся с `status == "ok"`.
+    """
+    sem = asyncio.Semaphore(args.concurrency)
+    file_lock = asyncio.Lock()
+    total = len(cases)
+    completed = 0
+    successful = 0
+
+    with args.output.open("a", encoding="utf-8") as f:
+
+        async def process(idx: int, case: dict[str, Any]) -> None:
+            nonlocal completed, successful
+            async with sem:
+                t0 = time.perf_counter()
+                print(f"[{idx}/{total}] {case['id']} starting...", flush=True)
+                try:
+                    rec = await run_one_case(case, runner, judge)
+                except Exception as e:
+                    print(f"[{idx}/{total}] {case['id']} FAILED: {type(e).__name__}: {e}", file=sys.stderr)
+                    return
+                elapsed = time.perf_counter() - t0
+            async with file_lock:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+                completed += 1
+                system_result = rec["systems"][runner.name]
+                if system_result.get("status") == "ok":
+                    successful += 1
+                metrics = system_result.get("metrics", {})
+                print(
+                    f"[{completed}/{total}] {case['id']} done in {elapsed:.1f}s | "
+                    f"n_valid={metrics.get('n_valid', 'ERR')} / "
+                    f"n_sources={metrics.get('n_sources', 'ERR')} "
+                    f"(unreachable={metrics.get('n_unreachable', 'ERR')})"
+                )
+
+        await asyncio.gather(*(process(i, c) for i, c in enumerate(cases, 1)))
+
+    return successful
 
 
 if __name__ == "__main__":
