@@ -24,6 +24,7 @@ import random
 import re
 import sys
 import time
+import traceback
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -221,18 +222,75 @@ class WideResearcherRunner:
 class OSSDRRunner:
     """OSS Deep Researcher runner (популярный open-source аналог на той же Qwen 3.5 9B).
 
+    Бьёт `POST {OSS_DR_URL}/api/v1/run_sync` с JSON-телом
+    `{"prompt": ..., "timeout_seconds": ..., "iterations": ...}`. Ответ
+    ожидается в том же формате, что и у WideResearcher:
+    `status` / `answer_text` / `sources`.
+
     Required env vars (положи в `.env`):
-        OSS_DR_URL    — endpoint выбранного OSS DeepResearcher
-        OSS_DR_TOKEN  — API-токен / ключ доступа (если требуется)
+        OSS_DR_URL    — base URL запущенного инстанса (например, http://localhost:5000)
+
+    Optional env vars:
+        OSS_DR_TIMEOUT     — таймаут HTTP-клиента в секундах (default: 1800)
+        OSS_DR_ITERATIONS  — количество итераций исследования (default: 1)
     """
 
     name = "oss_dr"
 
+    def __init__(self) -> None:
+        try:
+            import aiohttp  # noqa: F401
+        except ImportError as e:
+            raise RuntimeError("aiohttp package is not installed. Run: poetry install") from e
+
+        url = os.environ.get("OSS_DR_URL")
+        if not url:
+            raise RuntimeError("OSS_DR_URL is not set. Add it to .env or export the variable.")
+
+        self._base_url = url.rstrip("/")
+        self._timeout = float(os.environ.get("OSS_DR_TIMEOUT", "1800"))
+        self._iterations = int(os.environ.get("OSS_DR_ITERATIONS", "1"))
+
     async def run(self, prompt: str) -> tuple[str, list[str], float, float]:
-        raise NotImplementedError(
-            "OSS Deep Researcher runner is not implemented yet. "
-            "Fill in subprocess or HTTP call configured via OSS_DR_URL."
-        )
+        import aiohttp
+
+        endpoint = f"{self._base_url}/api/v1/run_sync"
+        timeout = aiohttp.ClientTimeout(total=self._timeout)
+        payload = {
+            "prompt": prompt,
+            "timeout_seconds": int(self._timeout),
+            "iterations": self._iterations,
+        }
+
+        t0 = time.perf_counter()
+        async with aiohttp.ClientSession(timeout=timeout) as http:
+            async with http.post(endpoint, json=payload) as response:
+                data: dict[str, Any] = await response.json()
+                status_code = response.status
+        gen_time = time.perf_counter() - t0
+
+        if status_code >= 400:
+            raise RuntimeError(f"OSS DeepResearcher HTTP {status_code}: {data}")
+
+        status = data.get("status")
+        if status != "complete":
+            raise RuntimeError(f"OSS DeepResearcher status={status!r}: {data.get('error') or data}")
+
+        answer = data.get("answer_text") or ""
+        raw_sources = data.get("sources") or []
+        sources: list[str] = []
+        for item in raw_sources:
+            if isinstance(item, str):
+                url = item
+            elif isinstance(item, dict):
+                url = item.get("url") or item.get("link") or item.get("href") or ""
+            else:
+                url = ""
+            url = url.strip()
+            if url:
+                sources.append(url)
+        # OSS DeepResearcher self-hosted — прямых API-расходов на запрос нет.
+        return answer, sources, gen_time, 0.0
 
 
 class MockRunner:
@@ -736,6 +794,7 @@ async def _run_cases(
                     rec = await run_one_case(case, runner, judge)
                 except Exception as e:
                     print(f"[{idx}/{total}] {case['id']} FAILED: {type(e).__name__}: {e}", file=sys.stderr)
+                    traceback.print_exc(file=sys.stderr)
                     return
                 elapsed = time.perf_counter() - t0
             async with file_lock:
