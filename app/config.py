@@ -66,6 +66,10 @@ class SearXNGConfig(BaseModel):
     url: str = "http://localhost:8080"
 
 
+class CeleryConfig(BaseModel):
+    worker_concurrency: int = 20
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -80,6 +84,7 @@ class Settings(BaseSettings):
     sql: SqlConfig
     auth: AuthConfig = AuthConfig()
     searxng: SearXNGConfig = SearXNGConfig()
+    celery: CeleryConfig = CeleryConfig()
 
 
 @lru_cache()

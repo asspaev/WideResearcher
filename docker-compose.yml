@@ -59,7 +59,9 @@ services:
     build: .
     container_name: wideresearcher-celery-worker
     restart: always
-    command: ["celery", "-A", "app.core.celery:celery_app", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "app.core.celery:celery_app", "worker", "--loglevel=info", "--pool=threads"]
+    environment:
+      - C_FORCE_ROOT=1
     networks:
       - wideresearcher-network
     volumes:
