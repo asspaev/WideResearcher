@@ -1,12 +1,13 @@
 import tiktoken
 from loguru import logger
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from app.crud.model import get_model_by_id
 from app.crud.research import update_research_stage
-from app.crud.scrapped_page import get_scrapped_page
 from app.models.chunk_summary import ChunkSummary
 from app.models.research import RESEARCH_STAGES
+from app.models.scrapped_page import ScrapeStatus, ScrappedPage
 
 from .base import ResearchStepBase
 
@@ -56,22 +57,25 @@ class ChunkingResearchStep(ResearchStepBase):
             return
 
         max_tokens: int = model.model_max_tokens
-        links: list[dict] = research.research_result_search_links
+        urls: list[str] = [link["url"] for link in research.research_result_search_links]
+
+        result = await self._session.execute(
+            select(ScrappedPage).where(
+                ScrappedPage.page_url.in_(urls),
+                ScrappedPage.page_scrapped_status == ScrapeStatus.SUCCESS,
+                ScrappedPage.page_clean_content.isnot(None),
+            )
+        )
+        pages: list[ScrappedPage] = list(result.scalars().all())
 
         total_chunks = 0
-        for link in links:
-            url: str = link["url"]
-            page = await get_scrapped_page(self._session, url)
-            if page is None or not page.page_clean_content:
-                logger.debug(f"{self._log_extra()} ChunkingResearchStep: no content for {url!r}, skipping")
-                continue
-
+        for page in pages:
             chunks = chunk_text(page.page_clean_content, max_tokens)
             for idx, chunk_content in enumerate(chunks):
                 stmt = (
                     insert(ChunkSummary)
                     .values(
-                        page_url=url,
+                        page_url=page.page_url,
                         research_id=research.research_id,
                         chunk_index=idx,
                         chunk_content=chunk_content,
@@ -84,9 +88,10 @@ class ChunkingResearchStep(ResearchStepBase):
                 await self._session.execute(stmt)
 
             total_chunks += len(chunks)
-            logger.debug(f"{self._log_extra()} ChunkingResearchStep: {url!r} → {len(chunks)} chunk(s)")
+            logger.debug(f"{self._log_extra()} ChunkingResearchStep: {page.page_url!r} → {len(chunks)} chunk(s)")
 
         await self._session.commit()
         logger.info(
-            f"{self._log_extra()} ChunkingResearchStep: done " f"(links={len(links)}, total_chunks={total_chunks})"
+            f"{self._log_extra()} ChunkingResearchStep: done "
+            f"(pages={len(pages)}/{len(urls)}, total_chunks={total_chunks})"
         )
