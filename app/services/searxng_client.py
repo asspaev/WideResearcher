@@ -22,12 +22,13 @@ class SearXNGClient:
         """
         self._base_url = base_url.rstrip("/")
 
-    async def search(self, query: str, n_results: int = 20) -> list[SearchResult]:
+    async def search(self, query: str, n_results: int = 20, page: int = 1) -> list[SearchResult]:
         """Выполняет поиск и возвращает список результатов.
 
         Args:
             query: Поисковый запрос.
             n_results: Максимальное количество результатов.
+            page: Номер страницы выдачи SearXNG (для пагинации).
 
         Returns:
             Список результатов с title, url, description.
@@ -35,7 +36,7 @@ class SearXNGClient:
         params = {
             "q": query,
             "format": "json",
-            "pageno": 1,
+            "pageno": page,
         }
         url = f"{self._base_url}/search"
 
@@ -54,5 +55,5 @@ class SearXNGClient:
                 )
             )
 
-        logger.debug(f"SearXNGClient: query={query!r} → {len(results)} results")
+        logger.debug(f"SearXNGClient: query={query!r} page={page} → {len(results)} results")
         return results

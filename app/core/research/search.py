@@ -1,4 +1,4 @@
-"""Шаг поиска: SearXNG → скрейпинг → очистка HTML."""
+"""Шаг поиска: SearXNG → скрейпинг → очистка HTML до набора рабочих ссылок."""
 
 import asyncio
 import re
@@ -9,7 +9,7 @@ from loguru import logger
 
 from app.config import get_settings
 from app.crud.research import update_research_search_links, update_research_stage
-from app.crud.scrapped_page import get_scrapped_page, upsert_scrapped_page
+from app.crud.scrapped_page import upsert_scrapped_page
 from app.models.research import RESEARCH_STAGES, Research
 from app.models.scrapped_page import ScrapeStatus
 from app.services.searxng_client import SearXNGClient
@@ -18,8 +18,14 @@ from app.services.web_scraper import WebScraper
 from .base import ResearchStepBase
 
 CONSECUTIVE_ERRORS_LIMIT = 3
+SEARCH_MAX_PAGES = 5
 _BINARY_EXTENSIONS = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".tar", ".gz", ".rar")
 _DOMAIN_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,}$")
+
+
+def _is_binary_url(url: str) -> bool:
+    """Проверяет, ведёт ли URL на бинарный файл, который мы не умеем парсить."""
+    return url.lower().split("?")[0].endswith(_BINARY_EXTENSIONS)
 
 
 def _parse_areas(areas_str: str | None) -> tuple[list[str], list[str]]:
@@ -54,10 +60,14 @@ def _parse_areas(areas_str: str | None) -> tuple[list[str], list[str]]:
 
 
 class SearchResearchStep(ResearchStepBase):
-    """Поиск через SearXNG, скрейпинг и очистка HTML найденных страниц."""
+    """Поиск через SearXNG, скрейпинг и очистка HTML до набора top_n рабочих ссылок."""
 
     async def execute(self) -> None:
-        """Ищет страницы по ключевым словам, скрейпит и очищает HTML.
+        """Собирает settings_n_top_search_results рабочих ссылок на каждое ключевое слово.
+
+        Рабочая ссылка — это та, для которой удалось скачать HTML и trafilatura
+        извлекла непустой текст. Если на странице SearXNG не хватает рабочих
+        результатов, идём дальше по страницам до SEARCH_MAX_PAGES.
 
         Ключевые слова подтягиваются из research.research_search_keywords.
         """
@@ -71,53 +81,80 @@ class SearchResearchStep(ResearchStepBase):
 
         await update_research_stage(self._session, research, RESEARCH_STAGES["SEARCH"])
 
-        urls = await self._search_top_pages(keywords)
-        await self._parse_pages(urls)
-        await self._clean_pages(urls)
+        urls = await self._collect_working_urls(keywords)
 
-    async def _search_top_pages(self, keywords: list[str]) -> list[str]:
-        """Ищет research.settings_n_top_search_results страниц через SearXNG для каждого ключевого слова.
+        if not urls:
+            logger.warning(f"{self._log_extra()} SearchResearchStep: no working URLs collected")
+            self.has_error = True
+            return
+
+        await update_research_search_links(
+            session=self._session,
+            research=self._research,
+            links=[{"url": url} for url in urls],
+        )
+        logger.info(f"{self._log_extra()} SearchResearchStep: collected {len(urls)} working URLs")
+
+    async def _collect_working_urls(self, keywords: list[str]) -> list[str]:
+        """Собирает уникальные рабочие URL по всем ключевым словам.
 
         Args:
-            keywords: Список поисковых запросов.
+            keywords: Поисковые запросы.
 
         Returns:
-            Список уникальных URL из результатов поиска.
+            Список URL, для которых scrapped_pages.status == SUCCESS, без дубликатов.
 
         Raises:
-            Exception: Если произошло CONSECUTIVE_ERRORS_LIMIT ошибок подряд.
+            Exception: Если SearXNG провалился CONSECUTIVE_ERRORS_LIMIT раз подряд.
         """
         client = SearXNGClient(base_url=get_settings().searxng.url)
-        urls: list[str] = []
-        seen: set[str] = set()
-        consecutive_errors = 0
+        scraper = WebScraper()
+        semaphore = asyncio.Semaphore(self._research.settings_n_async_parse)
 
         search_specific, search_domains = _parse_areas(self._research.settings_search_areas)
         _, exclude_domains = _parse_areas(self._research.settings_exclude_search_areas)
 
-        for url in search_specific:
-            if url not in seen:
-                seen.add(url)
-                urls.append(url)
-
         site_include = " OR ".join(f"site:{d}" for d in search_domains)
         site_exclude = " ".join(f"-site:{d}" for d in exclude_domains)
 
+        top_n: int = self._research.settings_n_top_search_results
+        seen: set[str] = set()
+        working_urls: list[str] = []
+
+        forced_candidates: list[str] = []
+        for u in search_specific:
+            if _is_binary_url(u):
+                logger.debug(f"{self._log_extra()} SearchResearchStep: skipping binary URL from search areas {u!r}")
+                continue
+            if u in seen:
+                continue
+            seen.add(u)
+            forced_candidates.append(u)
+        if forced_candidates:
+            kept = await self._fetch_and_keep(forced_candidates, semaphore, scraper, limit=None)
+            working_urls.extend(kept)
+            logger.debug(
+                f"{self._log_extra()} SearchResearchStep: forced URLs → "
+                f"{len(kept)}/{len(forced_candidates)} working"
+            )
+
+        consecutive_errors = 0
         for keyword in keywords:
             query = keyword
             if site_include:
                 query = f"{query} ({site_include})"
             if site_exclude:
                 query = f"{query} {site_exclude}"
+
             try:
-                results = await client.search(query, n_results=self._research.settings_n_top_search_results)
-                consecutive_errors = 0
-                for r in results:
-                    if r.url not in seen:
-                        seen.add(r.url)
-                        urls.append(r.url)
-                logger.debug(
-                    f"{self._log_extra()} SearchResearchStep: keyword={keyword!r} query={query!r} → {len(results)} results"
+                kept = await self._collect_for_keyword(
+                    client=client,
+                    scraper=scraper,
+                    semaphore=semaphore,
+                    keyword=keyword,
+                    query=query,
+                    top_n=top_n,
+                    seen=seen,
                 )
             except Exception as exc:
                 consecutive_errors += 1
@@ -128,100 +165,148 @@ class SearchResearchStep(ResearchStepBase):
                 if consecutive_errors >= CONSECUTIVE_ERRORS_LIMIT:
                     self.has_error = True
                     raise
+                continue
 
-        if urls:
-            await update_research_search_links(
-                session=self._session,
-                research=self._research,
-                links=[{"url": url} for url in urls],
+            consecutive_errors = 0
+            working_urls.extend(kept)
+            logger.debug(
+                f"{self._log_extra()} SearchResearchStep: keyword={keyword!r} → " f"{len(kept)}/{top_n} working"
             )
-            logger.info(f"{self._log_extra()} SearchResearchStep: found {len(urls)} unique URLs")
 
-        return urls
+        return working_urls
 
-    async def _parse_pages(self, urls: list[str]) -> None:
-        """Асинхронно скрейпит страницы с ограничением конкурентности research.settings_n_async_parse.
-
-        Сохраняет в scrapped_pages: IN_PROGRESS — если успешно спаршено,
-        ERROR — если не удалось.
+    async def _collect_for_keyword(
+        self,
+        *,
+        client: SearXNGClient,
+        scraper: WebScraper,
+        semaphore: asyncio.Semaphore,
+        keyword: str,
+        query: str,
+        top_n: int,
+        seen: set[str],
+    ) -> list[str]:
+        """Идёт по страницам SearXNG, пока не наберётся top_n рабочих ссылок.
 
         Args:
-            urls: Список URL для скрейпинга.
+            client: Клиент SearXNG.
+            scraper: HTTP-скрейпер.
+            semaphore: Ограничивает количество одновременных fetch.
+            keyword: Ключевое слово (для логирования).
+            query: Готовый поисковый запрос с site:-фильтрами.
+            top_n: Сколько рабочих ссылок нужно набрать.
+            seen: Множество уже виденных URL (обновляется на месте).
+
+        Returns:
+            До top_n рабочих URL в порядке ранжирования SearXNG.
+
+        Raises:
+            Exception: Если SearXNG отвечает ошибкой (пробрасывается наверх).
         """
-        scraper = WebScraper()
-        semaphore = asyncio.Semaphore(self._research.settings_n_async_parse)
+        kept: list[str] = []
+        for page in range(1, SEARCH_MAX_PAGES + 1):
+            if len(kept) >= top_n:
+                break
 
-        async def _fetch_one(url: str) -> tuple[str, str | None]:
-            if url.lower().split("?")[0].endswith(_BINARY_EXTENSIONS):
-                logger.debug(f"{self._log_extra()} SearchResearchStep: skipping binary URL {url!r}")
-                return url, None
+            results = await client.search(query, n_results=top_n * 5, page=page)
+            if not results:
+                break
+
+            candidates: list[str] = []
+            for r in results:
+                if _is_binary_url(r.url) or r.url in seen:
+                    continue
+                seen.add(r.url)
+                candidates.append(r.url)
+
+            if not candidates:
+                continue
+
+            need = top_n - len(kept)
+            new_working = await self._fetch_and_keep(candidates, semaphore, scraper, limit=need)
+            kept.extend(new_working)
+            logger.debug(
+                f"{self._log_extra()} SearchResearchStep: keyword={keyword!r} page={page} → "
+                f"{len(new_working)}/{len(candidates)} working (need={need})"
+            )
+
+        return kept[:top_n]
+
+    async def _fetch_and_keep(
+        self,
+        urls: list[str],
+        semaphore: asyncio.Semaphore,
+        scraper: WebScraper,
+        limit: int | None,
+    ) -> list[str]:
+        """Параллельно скачивает и очищает страницы, сохраняет в scrapped_pages.
+
+        Параллелится только сетевой fetch (через semaphore). Извлечение текста и
+        запись в БД выполняются последовательно — AsyncSession не безопасен для
+        конкурентных операций.
+
+        Args:
+            urls: Кандидаты на обработку, в порядке приоритета.
+            semaphore: Семафор для ограничения конкурентности fetch.
+            scraper: HTTP-скрейпер.
+            limit: Сколько максимум рабочих URL вернуть. None — все.
+
+        Returns:
+            URL'ы со SUCCESS-статусом в порядке `urls`. Не более limit (если задан).
+        """
+
+        async def _fetch(url: str) -> tuple[str, str | None]:
             async with semaphore:
-                raw_html = await scraper.fetch(url)
-            if raw_html is None:
-                logger.warning(f"{self._log_extra()} SearchResearchStep: failed to fetch {url!r}")
-            return url, raw_html
+                raw = await scraper.fetch(url)
+            return url, raw
 
-        fetched = await asyncio.gather(*[_fetch_one(url) for url in urls])
+        fetched = await asyncio.gather(*[_fetch(u) for u in urls])
 
+        kept: list[str] = []
         for url, raw_html in fetched:
-            if raw_html is not None:
-                status = ScrapeStatus.IN_PROGRESS
-                raw_content = raw_html.replace("\x00", "")
-            else:
-                status = ScrapeStatus.ERROR
-                raw_content = ""
+            if raw_html is None:
+                await upsert_scrapped_page(
+                    session=self._session,
+                    url=url,
+                    raw_content="",
+                    clean_content=None,
+                    status=ScrapeStatus.ERROR,
+                )
+                logger.debug(f"{self._log_extra()} SearchResearchStep: fetch failed {url!r}")
+                continue
+
+            raw_content = raw_html.replace("\x00", "")
+            try:
+                clean_content = self._extract_clean_text(raw_content)
+            except Exception as exc:
+                logger.warning(f"{self._log_extra()} SearchResearchStep: clean failed for {url!r}: {exc}")
+                clean_content = None
+
+            if not clean_content:
+                await upsert_scrapped_page(
+                    session=self._session,
+                    url=url,
+                    raw_content=raw_content,
+                    clean_content=None,
+                    status=ScrapeStatus.ERROR,
+                )
+                logger.debug(f"{self._log_extra()} SearchResearchStep: empty clean for {url!r}")
+                continue
+
+            clean_safe = clean_content.replace("\x00", "")
             await upsert_scrapped_page(
                 session=self._session,
                 url=url,
                 raw_content=raw_content,
-                clean_content=None,
-                status=status,
-            )
-            logger.debug(f"{self._log_extra()} SearchResearchStep: parsed {url!r} → {status.value}")
-
-    async def _clean_pages(self, urls: list[str]) -> None:
-        """Очищает HTML каждой успешно спаршенной страницы.
-
-        Пропускает страницы со статусом ERROR. Обновляет статус в scrapped_pages:
-        SUCCESS — если очистка прошла успешно, ERROR — если нет.
-
-        Args:
-            urls: Список URL страниц для очистки.
-
-        Raises:
-            Exception: Если во время очистки HTML возникла ошибка.
-        """
-        for url in urls:
-            page = await get_scrapped_page(self._session, url)
-            if page is None or page.page_scrapped_status == ScrapeStatus.ERROR:
-                continue
-
-            try:
-                clean_content = self._extract_clean_text(page.page_raw_content)
-            except Exception as exc:
-                logger.error(f"{self._log_extra()} SearchResearchStep: failed to clean {url!r}: {exc}")
-                await upsert_scrapped_page(
-                    session=self._session,
-                    url=url,
-                    raw_content=page.page_raw_content,
-                    clean_content=None,
-                    status=ScrapeStatus.ERROR,
-                )
-                self.has_error = True
-                raise
-
-            clean_content_safe = clean_content.replace("\x00", "") if clean_content else None
-            await upsert_scrapped_page(
-                session=self._session,
-                url=url,
-                raw_content=page.page_raw_content,
-                clean_content=clean_content_safe,
+                clean_content=clean_safe,
                 status=ScrapeStatus.SUCCESS,
             )
-            logger.debug(
-                f"{self._log_extra()} SearchResearchStep: cleaned {url!r} "
-                f"(clean_len={len(clean_content_safe) if clean_content_safe else 0})"
-            )
+            logger.debug(f"{self._log_extra()} SearchResearchStep: SUCCESS {url!r} (clean_len={len(clean_safe)})")
+
+            if limit is None or len(kept) < limit:
+                kept.append(url)
+
+        return kept
 
     @staticmethod
     def _extract_clean_text(html: str) -> str | None:
