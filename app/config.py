@@ -67,7 +67,7 @@ class SearXNGConfig(BaseModel):
 
 
 class CeleryConfig(BaseModel):
-    worker_concurrency: int = 20
+    worker_concurrency: int = 30
 
 
 class Settings(BaseSettings):
